@@ -16,6 +16,10 @@ enum Theme {
     static let surface = Color(hex: 0xFFFFFF)
     static let muted = Color(hex: 0x6B7689)
 
+    /// Row dividers inside cards. Taken from the Figma result screen; not one
+    /// of the named tokens in CLAUDE.md.
+    static let hairline = Color(hex: 0xE5E7EB)
+
     // MARK: - Verdicts
     //
     // These appear only on verdicts. Never on buttons or other UI.

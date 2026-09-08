@@ -24,10 +24,23 @@ GET https://world.openfoodfacts.org/api/v2/product/{barcode}.json
 - Send a User-Agent header: "Trace/1.0 (iOS; student project)"
 - On a miss, retry once with a leading zero stripped from the barcode.
   iOS reports UPC-A as 13 digits with a leading zero.
-- Read energy from `energy-kcal_100g`. The plain `energy` field is
-  kilojoules.
+- Read energy from `energy-kcal_100g`. Falling back to the plain `energy`
+  field means checking `energy_unit` first: divide by 4.184 only when the
+  unit is kJ, and take the value as-is when it says kcal. Treat a missing
+  unit as kJ.
 - Ingredient text: try `ingredients_text_en`, then `ingredients_text`,
   then treat as missing.
+
+### Fields to model
+
+Nothing outside this list. Every one of them is optional.
+
+Product: product_name, brands, image_url, ingredients_text_en,
+ingredients_text, allergens_tags, traces_tags, traces_from_ingredients,
+ingredients_tags, ingredients_analysis_tags, additives_tags
+
+Nutriments: energy-kcal_100g, energy, energy_unit, sugars_100g, fat_100g,
+saturated-fat_100g, salt_100g, proteins_100g
 
 ## Verdict logic
 
