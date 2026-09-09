@@ -2,32 +2,45 @@
 //  Verdict.swift
 //  Trace
 //
-//  The three answers a scan can produce.
+//  The four answers a scan can produce.
 //
 
 import SwiftUI
 
 enum Verdict {
 
-    /// Matched something the user avoids. The payload is the matched item.
-    case contains(String)
+    /// Matched something the user avoids. `matched` is the item as it should
+    /// read on screen; `source` is the field it turned up in, worded to drop
+    /// into a sentence — "declared allergens", "ingredients", "additives".
+    case contains(matched: String, source: String)
+
     case clear
     case unknown
 
+    /// Open Food Facts had nothing for the barcode, or the lookup never
+    /// completed. There is no product to talk about, so the band carries the
+    /// scanned code instead.
+    case notFound
+
     var title: String {
         switch self {
-        case .contains(let item): return "Contains \(item)"
-        case .clear: return "No matches"
+        case .contains(let matched, _): return "Contains \(matched)"
+        case .clear: return "No match found"
         case .unknown: return "Not enough data"
+        case .notFound: return "No product found"
         }
     }
 
     /// The one place a verdict color is allowed.
+    ///
+    /// `notFound` deliberately takes ink rather than a verdict color: nothing
+    /// was checked, so nothing is being claimed about the product.
     var color: Color {
         switch self {
         case .contains: return Theme.contains
         case .clear: return Theme.clear
         case .unknown: return Theme.unknown
+        case .notFound: return Theme.ink
         }
     }
 
@@ -36,25 +49,29 @@ enum Verdict {
         case .contains: return "exclamationmark.triangle"
         case .clear: return "checkmark.circle"
         case .unknown: return "questionmark.circle"
+        case .notFound: return "barcode.viewfinder"
         }
     }
 
     var reason: String {
         switch self {
-        case .contains(let item):
-            return "\(item.capitalized) is listed as a declared allergen."
+        case .contains(let matched, let source):
+            return "\(matched.capitalized) is listed in this product's \(source)."
         case .clear:
-            return "Nothing you avoid appears in this product."
+            return "None of your avoided ingredients appear in this product."
         case .unknown:
-            return "This product has no ingredient or allergen data to check."
+            return "This product has no ingredient list on file."
+        case .notFound:
+            return "Nothing came back for this barcode. It may not be in Open "
+                + "Food Facts yet, or the lookup did not go through."
         }
     }
 
     /// The term to highlight in the ingredient list.
     var matchedItem: String? {
         switch self {
-        case .contains(let item): return item
-        case .clear, .unknown: return nil
+        case .contains(let matched, _): return matched
+        case .clear, .unknown, .notFound: return nil
         }
     }
 }

@@ -11,6 +11,7 @@ struct TodayView: View {
             .foregroundStyle(Theme.ink)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(Theme.paper.ignoresSafeArea())
+            .debugVerdictMenu()
     }
 }
 

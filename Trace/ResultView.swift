@@ -2,23 +2,33 @@
 //  ResultView.swift
 //  Trace
 //
-//  The verdict sheet. Laid out from the Figma frame trace-contains-milk.
+//  The verdict sheet. Laid out from the Figma frames trace-contains-milk,
+//  trace-no-match and trace-not-enough-data.
 //
 
 import SwiftUI
 
 /// One scan, ready to show.
+///
+/// `product` is nil when the lookup came back with nothing, which is why the
+/// barcode is carried separately: it is all the screen has left to show.
 struct ScanResult: Identifiable {
     let id = UUID()
     let verdict: Verdict
-    let product: Product
+    let product: Product?
+    let barcode: String
 }
 
 struct ResultView: View {
 
     let verdict: Verdict
-    let product: Product
+    let product: Product?
+    let barcode: String
     let onScanNext: () -> Void
+
+    /// Stands in for any figure the screen cannot honestly print. Never a
+    /// zero: a missing value and a measured zero are not the same claim.
+    private static let missing = "—"
 
     var body: some View {
         GeometryReader { proxy in
@@ -44,11 +54,21 @@ struct ResultView: View {
                 .frame(width: 48, height: 48)
                 .foregroundStyle(Theme.surface)
 
-            Text(verdict.title)
-                .font(.system(size: 44, weight: .heavy))
-                .foregroundStyle(Theme.surface)
-                .multilineTextAlignment(.center)
-                .minimumScaleFactor(0.5)
+            VStack(spacing: 8) {
+                Text(verdict.title)
+                    .font(.system(size: 44, weight: .heavy))
+                    .foregroundStyle(Theme.surface)
+                    .multilineTextAlignment(.center)
+                    .minimumScaleFactor(0.5)
+
+                // With no product to name, the code is the only thing that
+                // tells the user which scan they are looking at.
+                if case .notFound = verdict {
+                    Text(barcode)
+                        .font(.system(size: 15, weight: .semibold).monospacedDigit())
+                        .foregroundStyle(Theme.surface.opacity(0.75))
+                }
+            }
         }
         .padding(.horizontal, Theme.sideMargin)
         .padding(.bottom, 24)
@@ -61,10 +81,22 @@ struct ResultView: View {
 
     private var contentBody: some View {
         VStack(alignment: .leading, spacing: 20) {
-            productMeta
+            if let product {
+                productMeta(product)
+            }
+
             whyCard
-            ingredientsSection
-            nutritionCard
+
+            if let product {
+                ingredientsSection(product)
+                nutritionCard
+
+                if hasNoNutritionFigures {
+                    Text("No nutrition data on file")
+                        .font(.system(size: 13))
+                        .foregroundStyle(Theme.muted)
+                }
+            }
 
             Text("Always check the physical label")
                 .font(.system(size: 13))
@@ -77,9 +109,9 @@ struct ResultView: View {
         .padding(.vertical, 24)
     }
 
-    private var productMeta: some View {
+    private func productMeta(_ product: Product) -> some View {
         HStack(spacing: 16) {
-            thumbnail
+            thumbnail(product)
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(product.productName ?? "Unknown product")
@@ -97,7 +129,7 @@ struct ResultView: View {
         }
     }
 
-    private var thumbnail: some View {
+    private func thumbnail(_ product: Product) -> some View {
         AsyncImage(url: URL(string: product.imageURL ?? "")) { image in
             image
                 .resizable()
@@ -130,7 +162,7 @@ struct ResultView: View {
         .clipShape(RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous))
     }
 
-    private var ingredientsSection: some View {
+    private func ingredientsSection(_ product: Product) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Ingredients")
                 .font(.system(size: 17, weight: .heavy))
@@ -142,8 +174,8 @@ struct ResultView: View {
                     .lineSpacing(4)
                     .fixedSize(horizontal: false, vertical: true)
             } else {
-                Text("No ingredient list available.")
-                    .font(.system(size: 17))
+                Text("No ingredient list on file")
+                    .font(.system(size: 15))
                     .foregroundStyle(Theme.muted)
             }
         }
@@ -226,16 +258,17 @@ struct ResultView: View {
     // MARK: - Nutrition rows
 
     struct NutritionRow: Identifiable {
-        let id = UUID()
+        /// Labels are unique down the table, so one doubles as its identity.
+        var id: String { label }
         let label: String
         let value: String
     }
 
     private var nutritionRows: [NutritionRow] {
-        let nutriments = product.nutriments
+        let nutriments = product?.nutriments
 
         return [
-            NutritionRow(label: "Energy", value: kcal(product.energyKcalPer100g)),
+            NutritionRow(label: "Energy", value: kcal(product?.energyKcalPer100g)),
             NutritionRow(label: "Sugars", value: grams(nutriments?.sugars100g)),
             NutritionRow(label: "Fat", value: grams(nutriments?.fat100g)),
             NutritionRow(label: "Saturated fat", value: grams(nutriments?.saturatedFat100g)),
@@ -244,42 +277,56 @@ struct ResultView: View {
         ]
     }
 
+    /// True when not one row came out with a figure behind it.
+    private var hasNoNutritionFigures: Bool {
+        nutritionRows.allSatisfy { $0.value == Self.missing }
+    }
+
     private func kcal(_ value: Double?) -> String {
-        guard let value else { return "—" }
+        guard let value else { return Self.missing }
         return String(format: "%.0f kcal", value)
     }
 
     private func grams(_ value: Double?) -> String {
-        guard let value else { return "—" }
+        guard let value else { return Self.missing }
         return String(format: "%.1f g", value)
     }
 }
 
 #if DEBUG
-extension Product {
+#Preview("Contains") {
+    ResultView(
+        verdict: .contains(matched: "milk", source: "declared allergens"),
+        product: DebugSample.containsMilk.product,
+        barcode: DebugSample.containsMilk.barcode,
+        onScanNext: {}
+    )
+}
 
-    /// Stands in for a lookup in previews.
-    static var sample: Product? {
-        let json = """
-        {
-          "product_name": "Dark Chocolate Bar",
-          "brands": "Maison Cacao",
-          "ingredients_text_en": "Cocoa mass, sugar, cocoa butter, emulsifier \
-        (soy lecithin), whole milk powder, natural vanilla flavoring.",
-          "allergens_tags": ["en:milk"],
-          "nutriments": {
-            "energy-kcal_100g": 540, "sugars_100g": 42.5, "fat_100g": 34.1,
-            "saturated-fat_100g": 20.4, "salt_100g": 0.1, "proteins_100g": 6.8
-          }
-        }
-        """
-        return try? JSONDecoder().decode(Product.self, from: Data(json.utf8))
-    }
+#Preview("No match") {
+    ResultView(
+        verdict: .clear,
+        product: DebugSample.noMatch.product,
+        barcode: DebugSample.noMatch.barcode,
+        onScanNext: {}
+    )
+}
+
+#Preview("Not enough data") {
+    ResultView(
+        verdict: .unknown,
+        product: DebugSample.notEnoughData.product,
+        barcode: DebugSample.notEnoughData.barcode,
+        onScanNext: {}
+    )
+}
+
+#Preview("Not found") {
+    ResultView(
+        verdict: .notFound,
+        product: nil,
+        barcode: DebugSample.notFound.barcode,
+        onScanNext: {}
+    )
 }
 #endif
-
-#Preview {
-    if let product = Product.sample {
-        ResultView(verdict: .contains("milk"), product: product, onScanNext: {})
-    }
-}

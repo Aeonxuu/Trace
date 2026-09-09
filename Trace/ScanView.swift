@@ -48,7 +48,11 @@ struct ScanView: View {
                 .sheetCornerRadius(Theme.sheetRadius)
         }
         .sheet(item: $result) { scan in
-            ResultView(verdict: scan.verdict, product: scan.product) {
+            ResultView(
+                verdict: scan.verdict,
+                product: scan.product,
+                barcode: scan.barcode
+            ) {
                 result = nil
             }
             .presentationDetents([.large])
@@ -91,7 +95,6 @@ struct ScanView: View {
     private func handleScan(_ barcode: String) {
         guard !isLookingUp, result == nil else { return }
 
-        print("Scanned barcode: \(barcode)")
         isLookingUp = true
 
         Task {
@@ -101,31 +104,32 @@ struct ScanView: View {
                 switch try await service.fetchProduct(barcode: barcode) {
                 case .found(let product):
                     // Hardcoded until the verdict engine lands.
-                    result = ScanResult(verdict: .contains("milk"), product: product)
+                    result = ScanResult(
+                        verdict: .contains(matched: "milk", source: "declared allergens"),
+                        product: product,
+                        barcode: barcode
+                    )
 
                 case .notFound:
-                    print("Trace: not found \(barcode)")
+                    result = nothingFound(barcode)
 
                 case .failed(let error):
+                    // A dead end either way for the person holding the phone,
+                    // so it lands on the same screen. The error is kept in the
+                    // log because the screen cannot carry it.
                     print("Trace: lookup failed \(barcode) — \(error)")
+                    result = nothingFound(barcode)
                 }
             } catch {
                 print("Trace: lookup rejected \(barcode) — \(error)")
+                result = nothingFound(barcode)
             }
         }
     }
-}
 
-private extension View {
-
-    /// `presentationCornerRadius` is iOS 16.4, the deployment target is 16.0.
-    @ViewBuilder
-    func sheetCornerRadius(_ radius: CGFloat) -> some View {
-        if #available(iOS 16.4, *) {
-            presentationCornerRadius(radius)
-        } else {
-            self
-        }
+    /// The lookup came back with no product to say anything about.
+    private func nothingFound(_ barcode: String) -> ScanResult {
+        ScanResult(verdict: .notFound, product: nil, barcode: barcode)
     }
 }
 
