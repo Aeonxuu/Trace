@@ -15,10 +15,13 @@ struct TodayView: View {
 
     @EnvironmentObject private var history: ScanHistoryModel
 
-    @State private var reopened: ScanResult?
-    @State private var isReopening = false
+    @StateObject private var reopener = RecordReopener()
 
-    private let service = ProductService()
+    private static let recentCount = 3
+
+    private var recentScans: [ScanRecord] {
+        history.recent(Self.recentCount)
+    }
 
     var body: some View {
         screen
@@ -31,8 +34,8 @@ struct TodayView: View {
                 greeting
                 scanCard
 
-                if let last = history.lastScan {
-                    lastScanSection(last)
+                if !recentScans.isEmpty {
+                    recentScansSection
                     statsSection
                 }
             }
@@ -43,17 +46,7 @@ struct TodayView: View {
         .frame(maxWidth: .infinity)
         .background(Theme.paper.ignoresSafeArea())
         .task { await history.loadIfNeeded() }
-        .sheet(item: $reopened) { scan in
-            ResultView(
-                verdict: scan.verdict,
-                product: scan.product,
-                barcode: scan.barcode
-            ) {
-                reopened = nil
-            }
-            .presentationDetents([.large])
-            .sheetCornerRadius(Theme.sheetRadius)
-        }
+        .scanResultSheet($reopener.result)
     }
 
     // MARK: - Greeting
@@ -72,7 +65,7 @@ struct TodayView: View {
     }
 
     private var subtitle: String {
-        history.lastScan == nil
+        recentScans.isEmpty
             ? "Nothing scanned yet. Start with your first barcode."
             : "Scan a product to check your active avoidances."
     }
@@ -118,46 +111,54 @@ struct TodayView: View {
         .buttonStyle(.plain)
     }
 
-    // MARK: - Last scan
+    // MARK: - Recent scans
 
-    private func lastScanSection(_ record: ScanRecord) -> some View {
+    private var recentScansSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Last scan")
+            Text("Recent scans")
                 .font(.system(size: 17, weight: .heavy))
                 .foregroundStyle(Theme.ink)
 
-            Button {
-                reopen(record)
-            } label: {
-                HStack(spacing: 12) {
-                    thumbnail(record)
-
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(record.displayName)
-                            .font(.system(size: 16, weight: .heavy))
-                            .foregroundStyle(Theme.ink)
-                            .lineLimit(1)
-
-                        Text(record.brands ?? record.barcode)
-                            .font(.system(size: 13))
-                            .foregroundStyle(Theme.muted)
-                            .lineLimit(1)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-
-                    if isReopening {
-                        ProgressView().tint(Theme.muted)
-                    } else {
-                        verdictChip(record.verdict)
-                    }
+            VStack(spacing: 10) {
+                ForEach(recentScans) { record in
+                    recentRow(record)
                 }
-                .padding(16)
-                .background(Theme.surface)
-                .clipShape(RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous))
             }
-            .buttonStyle(.plain)
-            .disabled(isReopening)
         }
+    }
+
+    private func recentRow(_ record: ScanRecord) -> some View {
+        Button {
+            reopener.open(record)
+        } label: {
+            HStack(spacing: 12) {
+                thumbnail(record)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(record.displayName)
+                        .font(.system(size: 16, weight: .heavy))
+                        .foregroundStyle(Theme.ink)
+                        .lineLimit(1)
+
+                    Text(record.brands ?? record.barcode)
+                        .font(.system(size: 13))
+                        .foregroundStyle(Theme.muted)
+                        .lineLimit(1)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+                if reopener.isOpening(record) {
+                    ProgressView().tint(Theme.muted)
+                } else {
+                    VerdictChip(verdict: record.verdict)
+                }
+            }
+            .padding(16)
+            .background(Theme.surface)
+            .clipShape(RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous))
+        }
+        .buttonStyle(.plain)
+        .disabled(reopener.isOpening)
     }
 
     private func thumbnail(_ record: ScanRecord) -> some View {
@@ -174,40 +175,6 @@ struct TodayView: View {
         }
         .frame(width: 48, height: 48)
         .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-    }
-
-    /// The one place on this screen a verdict color is allowed.
-    private func verdictChip(_ verdict: Verdict) -> some View {
-        Text(verdict.chipLabel)
-            .font(.system(size: 13, weight: .bold))
-            .foregroundStyle(verdict.color)
-            .padding(.horizontal, 10)
-            .padding(.vertical, 4)
-            .background(verdict.color.opacity(0.12))
-            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-    }
-
-    /// The record keeps only what the row draws, so the product is fetched
-    /// again to fill the sheet. The verdict shown is the one from the scan,
-    /// not a fresh reading.
-    private func reopen(_ record: ScanRecord) {
-        guard !isReopening else { return }
-        isReopening = true
-
-        Task {
-            defer { isReopening = false }
-
-            var product: Product?
-            if case .found(let fetched)? = try? await service.fetchProduct(barcode: record.barcode) {
-                product = fetched
-            }
-
-            reopened = ScanResult(
-                verdict: record.verdict,
-                product: product,
-                barcode: record.barcode
-            )
-        }
     }
 
     // MARK: - Stats

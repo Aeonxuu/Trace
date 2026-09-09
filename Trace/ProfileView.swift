@@ -12,6 +12,10 @@ struct ProfileView: View {
     @EnvironmentObject private var model: RestrictionsModel
     @State private var isPicking = false
 
+    /// Held rather than removed on tap: the × sits next to a segmented
+    /// control, so it is easy to hit by accident.
+    @State private var restrictionToRemove: Restriction?
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
@@ -35,6 +39,16 @@ struct ProfileView: View {
         }
         .frame(maxWidth: .infinity)
         .background(Theme.paper.ignoresSafeArea())
+        .alert(
+            removalTitle,
+            isPresented: isConfirmingRemoval,
+            presenting: restrictionToRemove
+        ) { restriction in
+            Button("Cancel", role: .cancel) {}
+            Button("Remove", role: .destructive) { model.remove(restriction) }
+        } message: { _ in
+            Text("You won't be warned about this ingredient anymore.")
+        }
         .sheet(isPresented: $isPicking) {
             RestrictionPickerView(selected: model.selectedTagIDs) { selection in
                 model.apply(selection: selection)
@@ -42,6 +56,17 @@ struct ProfileView: View {
             .presentationDetents([.large])
             .sheetCornerRadius(Theme.sheetRadius)
         }
+    }
+
+    private var removalTitle: String {
+        "Remove \(restrictionToRemove?.name ?? "")?"
+    }
+
+    private var isConfirmingRemoval: Binding<Bool> {
+        Binding(
+            get: { restrictionToRemove != nil },
+            set: { if !$0 { restrictionToRemove = nil } }
+        )
     }
 
     // MARK: - Avoided ingredients
@@ -108,7 +133,7 @@ struct ProfileView: View {
                 .frame(width: 130)
 
             Button {
-                model.remove(restriction)
+                restrictionToRemove = restriction
             } label: {
                 Image(systemName: "xmark.circle")
                     .font(.system(size: 16))

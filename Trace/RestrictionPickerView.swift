@@ -71,48 +71,8 @@ struct RestrictionPickerView: View {
     }
 
     private var searchField: some View {
-        HStack(spacing: 12) {
-            Image(systemName: "magnifyingglass")
-                .font(.system(size: 16))
-                .foregroundStyle(Theme.muted)
-
-            // The placeholder is drawn rather than passed to TextField: the
-            // built-in one uses the system placeholder color, which is far
-            // fainter than muted and barely legible on surface.
-            ZStack(alignment: .leading) {
-                if query.isEmpty {
-                    Text(Self.placeholder)
-                        .font(.system(size: 15))
-                        .foregroundStyle(Theme.muted)
-                }
-
-                TextField("", text: $query)
-                    .font(.system(size: 15))
-                    .foregroundStyle(Theme.ink)
-                    .autocorrectionDisabled()
-                    .textInputAutocapitalization(.never)
-                    .accessibilityLabel(Self.placeholder)
-            }
-
-            if !query.isEmpty {
-                Button {
-                    query = ""
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .font(.system(size: 15))
-                        .foregroundStyle(Theme.muted)
-                }
-            }
-        }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
-        .background(Theme.surface)
-        .clipShape(RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous))
-        .overlay {
-            RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous)
-                .strokeBorder(Theme.hairline, lineWidth: 1)
-        }
-        .padding(.horizontal, Theme.sideMargin)
+        SearchField(placeholder: Self.placeholder, text: $query)
+            .padding(.horizontal, Theme.sideMargin)
     }
 
     @ViewBuilder

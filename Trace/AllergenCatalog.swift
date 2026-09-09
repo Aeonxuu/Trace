@@ -24,6 +24,33 @@ enum AllergenCatalog {
     /// underneath us.
     static let all: [Allergen] = load()
 
+    /// The display name for a tag ID.
+    ///
+    /// Falls back to the tag itself, de-slugified, because a product declares
+    /// tags from the whole Open Food Facts taxonomy and the picker only offers
+    /// the ones this catalog carries.
+    static func displayName(forTagID tagID: String) -> String {
+        let normalized = tagID.trimmed.lowercased()
+
+        if let known = byTagID[normalized] {
+            return known.name
+        }
+
+        let bare: String
+        if let colon = normalized.lastIndex(of: ":") {
+            bare = String(normalized[normalized.index(after: colon)...])
+        } else {
+            bare = normalized
+        }
+
+        return bare.replacingOccurrences(of: "-", with: " ").sentenceCased
+    }
+
+    private static let byTagID: [String: Allergen] = Dictionary(
+        all.map { ($0.id.lowercased(), $0) },
+        uniquingKeysWith: { first, _ in first }
+    )
+
     /// "en:none" means "no allergens declared" in the taxonomy. It is a
     /// statement about a product, not something a person avoids, so it never
     /// belongs in the picker.

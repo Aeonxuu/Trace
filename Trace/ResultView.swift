@@ -151,10 +151,17 @@ struct ResultView: View {
                 .font(.system(size: 17, weight: .heavy))
                 .foregroundStyle(Theme.ink)
 
-            Text(verdict.reason)
-                .font(.system(size: 17))
-                .foregroundStyle(Theme.ink)
-                .fixedSize(horizontal: false, vertical: true)
+            VStack(alignment: .leading, spacing: 6) {
+                // Keyed by position: two restrictions could in principle share
+                // a display name, and identical lines must not collapse.
+                ForEach(Array(verdict.reasonLines.enumerated()), id: \.offset) { _, line in
+                    Text(line)
+                        .font(.system(size: 17))
+                        .foregroundStyle(Theme.ink)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+            }
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -169,7 +176,7 @@ struct ResultView: View {
                 .foregroundStyle(Theme.ink)
 
             if let text = product.ingredientText {
-                highlighting(verdict.matchedItem, in: text)
+                highlighting(verdict.matchedItems, in: text)
                     .font(.system(size: 17))
                     .lineSpacing(4)
                     .fixedSize(horizontal: false, vertical: true)
@@ -178,25 +185,63 @@ struct ResultView: View {
                     .font(.system(size: 15))
                     .foregroundStyle(Theme.muted)
             }
+
+            declaredAllergens(product)
         }
     }
 
-    /// Marks each whole-word occurrence of the matched item.
-    private func highlighting(_ term: String?, in text: String) -> Text {
-        guard let term else {
-            return Text(text).foregroundColor(Theme.ink)
+    /// Open Food Facts often declares an allergen that never shows up in the
+    /// visible ingredient text, which leaves the verdict looking unfounded.
+    /// This is where that evidence goes.
+    @ViewBuilder
+    private func declaredAllergens(_ product: Product) -> some View {
+        let names = (product.allergensTags ?? [])
+            .map { AllergenCatalog.displayName(forTagID: $0).lowercased() }
+            .filter { !$0.isEmpty }
+
+        if !names.isEmpty {
+            (
+                Text("Declared allergens: ").foregroundColor(Theme.muted)
+                    + highlighting(
+                        verdict.matchedItems,
+                        in: names.joined(separator: ", "),
+                        base: Theme.muted
+                    )
+            )
+            .font(.system(size: 15))
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.top, 4)
         }
+    }
+
+    /// Marks every whole-word occurrence of every matched item.
+    private func highlighting(
+        _ terms: [String],
+        in text: String,
+        base: Color = Theme.ink
+    ) -> Text {
+        guard !terms.isEmpty else {
+            return Text(text).foregroundColor(base)
+        }
+
+        // Ranges from all terms, walked in document order. One that starts
+        // inside a range already drawn is skipped: two avoided terms rarely
+        // overlap, and half a highlight would read worse than none.
+        let ranges = terms
+            .flatMap { WordMatch.ranges(of: $0, in: text) }
+            .sorted { $0.lowerBound < $1.lowerBound }
 
         var result = Text("")
         var cursor = text.startIndex
 
-        for range in WordMatch.ranges(of: term, in: text) {
-            result = result + Text(String(text[cursor..<range.lowerBound])).foregroundColor(Theme.ink)
+        for range in ranges where range.lowerBound >= cursor {
+            result = result + Text(String(text[cursor..<range.lowerBound])).foregroundColor(base)
             result = result + Text(String(text[range])).bold().foregroundColor(Theme.contains)
             cursor = range.upperBound
         }
 
-        return result + Text(String(text[cursor...])).foregroundColor(Theme.ink)
+        return result + Text(String(text[cursor...])).foregroundColor(base)
     }
 
     private var nutritionCard: some View {
@@ -296,7 +341,7 @@ struct ResultView: View {
 #if DEBUG
 #Preview("Contains") {
     ResultView(
-        verdict: .contains(matched: "Milk", source: .allergens),
+        verdict: .contains(matches: [VerdictMatch(name: "Milk", source: .allergens)]),
         product: DebugSample.containsMilk.product,
         barcode: DebugSample.containsMilk.barcode,
         onScanNext: {}

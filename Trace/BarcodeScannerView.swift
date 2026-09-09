@@ -101,8 +101,9 @@ struct BarcodeScannerView: UIViewControllerRepresentable {
     /// Holds the camera still while a lookup runs and the result sheet is up.
     let isPaused: Bool
 
-    /// Called once per scan, with the payload of the barcode recognized.
-    let onScan: (String) -> Void
+    /// Called with the payload of each barcode recognized. Returns whether
+    /// the scan was taken: a declined one must leave the camera running.
+    let onScan: (String) -> Bool
 
     func makeCoordinator() -> Coordinator {
         Coordinator(onScan: onScan)
@@ -145,10 +146,10 @@ struct BarcodeScannerView: UIViewControllerRepresentable {
 
         weak var host: ScannerHostViewController?
 
-        private let onScan: (String) -> Void
+        private let onScan: (String) -> Bool
         private var hasScanned = false
 
-        init(onScan: @escaping (String) -> Void) {
+        init(onScan: @escaping (String) -> Bool) {
             self.onScan = onScan
         }
 
@@ -170,9 +171,15 @@ struct BarcodeScannerView: UIViewControllerRepresentable {
                     continue
                 }
 
+                // Latch and stop only once the screen has taken the scan.
+                // Stopping first cost us the camera for the rest of the
+                // session: re-arming happens in updateUIViewController, which
+                // only runs when SwiftUI re-renders, and a declined scan
+                // changes no state and so re-renders nothing.
+                guard onScan(payload) else { continue }
+
                 hasScanned = true
                 host?.pauseScanning()
-                onScan(payload)
                 return
             }
         }

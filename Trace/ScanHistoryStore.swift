@@ -18,8 +18,10 @@ protocol ScanHistory {
 
 struct UserDefaultsScanHistory: ScanHistory {
 
-    /// Versioned: a later shape change can migrate instead of guessing.
-    private static let key = "trace.scanHistory.v1"
+    /// Bumped to v2 when Verdict.contains went from one match to a list:
+    /// v1 records cannot decode into the new shape, and one failure would
+    /// take the whole array down with it. Old data is left in place, unread.
+    private static let key = "trace.scanHistory.v2"
 
     /// UserDefaults is loaded into memory whole, so the log is capped rather
     /// than left to grow for the life of the install.

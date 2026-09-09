@@ -31,11 +31,19 @@ enum MatchSource: String, Codable, Hashable, CaseIterable {
     }
 }
 
+/// One restriction that matched, and the tier that caught it.
+///
+/// A restriction appears at most once even when it turns up in several tiers,
+/// attributed to the earliest one — the most direct evidence available.
+struct VerdictMatch: Codable, Hashable {
+    let name: String
+    let source: MatchSource
+}
+
 enum Verdict: Codable, Hashable {
 
-    /// Matched something the user avoids. `matched` is the item as it should
-    /// read on screen; `source` is the tier that caught it.
-    case contains(matched: String, source: MatchSource)
+    /// Matched things the user avoids, in tier order. Never empty.
+    case contains(matches: [VerdictMatch])
 
     case clear
     case unknown
@@ -47,7 +55,8 @@ enum Verdict: Codable, Hashable {
 
     var title: String {
         switch self {
-        case .contains(let matched, _): return "Contains \(matched.lowercased())"
+        case .contains(let matches):
+            return "Contains " + Self.sentenceList(matches.map { $0.name.lowercased() })
         case .clear: return "No match found"
         case .unknown: return "Not enough data"
         case .notFound: return "No product found"
@@ -76,20 +85,33 @@ enum Verdict: Codable, Hashable {
         }
     }
 
-    var reason: String {
+    /// The Why card's body, one line per match, so a declared allergen and a
+    /// trace warning stay distinguishable.
+    var reasonLines: [String] {
         switch self {
-        case .contains(let matched, let source):
-            // `matched` arrives sentence-cased from the catalog, so it is used
+        case .contains(let matches):
+            // Names arrive sentence-cased from the catalog, so they are used
             // as written: `.capitalized` would title-case "sulphur dioxide and
             // sulphites".
-            return "\(matched) is listed in this product's \(source.phrase)."
+            return matches.map { "\($0.name) is listed in this product's \($0.source.phrase)." }
         case .clear:
-            return "None of your avoided ingredients appear in this product."
+            return ["None of your avoided ingredients appear in this product."]
         case .unknown:
-            return "This product has no ingredient list on file."
+            return ["This product has no ingredient list on file."]
         case .notFound:
-            return "Nothing came back for this barcode. It may not be in Open "
-                + "Food Facts yet, or the lookup did not go through."
+            return ["Nothing came back for this barcode. It may not be in Open "
+                + "Food Facts yet, or the lookup did not go through."]
+        }
+    }
+
+    /// "milk", "milk and peanuts", "milk, peanuts and soy".
+    private static func sentenceList(_ items: [String]) -> String {
+        guard let last = items.last else { return "" }
+
+        switch items.count {
+        case 1: return last
+        case 2: return items[0] + " and " + last
+        default: return items.dropLast().joined(separator: ", ") + " and " + last
         }
     }
 
@@ -109,11 +131,11 @@ enum Verdict: Codable, Hashable {
         return false
     }
 
-    /// The term to highlight in the ingredient list.
-    var matchedItem: String? {
+    /// Every term to highlight in the ingredient list.
+    var matchedItems: [String] {
         switch self {
-        case .contains(let matched, _): return matched
-        case .clear, .unknown, .notFound: return nil
+        case .contains(let matches): return matches.map(\.name)
+        case .clear, .unknown, .notFound: return []
         }
     }
 }

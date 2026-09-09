@@ -22,33 +22,37 @@ nonisolated enum VerdictEngine {
         countTraces: Bool
     ) -> Verdict {
 
-        // 1. Declared allergens.
-        if let hit = first(of: restrictions, in: product.allergensTags) {
-            return .contains(matched: hit.name, source: .allergens)
+        var matches: [VerdictMatch] = []
+        var reported: Set<String> = []
+
+        // Tiers still run in CLAUDE.md's order, but none of them returns: a
+        // restriction caught at tier 1 and another at tier 3 both belong on
+        // the verdict. The first tier to catch a restriction is the one it is
+        // attributed to, so `reported` keeps it from being listed twice.
+        func collect(_ candidates: [Restriction], in tags: [String]?, as source: MatchSource) {
+            for restriction in all(of: candidates, in: tags)
+            where reported.insert(restriction.tagID).inserted {
+                matches.append(VerdictMatch(name: restriction.name, source: source))
+            }
         }
+
+        // 1. Declared allergens.
+        collect(restrictions, in: product.allergensTags, as: .allergens)
 
         // 2. Traces, but only for restrictions that asked to hear about them:
         // a severe restriction always does, everyone else only when the
         // global toggle is on.
         let traceSensitive = restrictions.filter { countTraces || $0.severity == .severe }
-        if let hit = first(of: traceSensitive, in: product.tracesTags)
-            ?? first(of: traceSensitive, in: tokens(of: product.tracesFromIngredients)) {
-            return .contains(matched: hit.name, source: .traces)
-        }
+        collect(traceSensitive, in: product.tracesTags, as: .traces)
+        collect(traceSensitive, in: tokens(of: product.tracesFromIngredients), as: .traces)
 
-        // 3. Ingredient tags.
-        if let hit = first(of: restrictions, in: product.ingredientsTags) {
-            return .contains(matched: hit.name, source: .ingredients)
-        }
+        // 3, 4, 5.
+        collect(restrictions, in: product.ingredientsTags, as: .ingredients)
+        collect(restrictions, in: product.ingredientsAnalysisTags, as: .ingredientAnalysis)
+        collect(restrictions, in: product.additivesTags, as: .additives)
 
-        // 4. Ingredient analysis.
-        if let hit = first(of: restrictions, in: product.ingredientsAnalysisTags) {
-            return .contains(matched: hit.name, source: .ingredientAnalysis)
-        }
-
-        // 5. Additives.
-        if let hit = first(of: restrictions, in: product.additivesTags) {
-            return .contains(matched: hit.name, source: .additives)
+        if !matches.isEmpty {
+            return .contains(matches: matches)
         }
 
         // Nothing matched, which only means "clear" if there was something to
@@ -58,19 +62,19 @@ nonisolated enum VerdictEngine {
 
     // MARK: - Matching
 
-    /// The first restriction present in `tags`.
+    /// Every restriction present in `tags`.
     ///
-    /// Ordered by the user's own list rather than by the product's tags, so a
-    /// tie resolves the same way every time no matter how Open Food Facts
+    /// Ordered by the user's own list rather than by the product's tags, so
+    /// the verdict reads the same way every time no matter how Open Food Facts
     /// happens to order its fields.
-    private static func first(
+    private static func all(
         of restrictions: [Restriction],
         in tags: [String]?
-    ) -> Restriction? {
-        guard let tags, !tags.isEmpty else { return nil }
+    ) -> [Restriction] {
+        guard let tags, !tags.isEmpty else { return [] }
 
         let present = Set(tags.map(normalized))
-        return restrictions.first { !forms(of: $0).isDisjoint(with: present) }
+        return restrictions.filter { !forms(of: $0).isDisjoint(with: present) }
     }
 
     /// `traces_from_ingredients` is one free-text field rather than a list, so

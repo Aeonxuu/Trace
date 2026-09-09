@@ -6,6 +6,14 @@
 import XCTest
 @testable import Trace
 
+/// Reaches into the verdict without a `guard case` at every call site.
+private extension Verdict {
+    var matches: [VerdictMatch]? {
+        if case .contains(let matches) = self { return matches }
+        return nil
+    }
+}
+
 final class VerdictEngineTests: XCTestCase {
 
     // MARK: - Fixtures
@@ -37,16 +45,14 @@ final class VerdictEngineTests: XCTestCase {
             countTraces: false
         )
 
-        guard case .contains(let matched, let source) = verdict else {
-            return XCTFail("expected contains, got \(verdict)")
-        }
-        XCTAssertEqual(matched, "Milk")
-        XCTAssertEqual(source, .allergens)
+        XCTAssertEqual(verdict.matches?.map(\.name), ["Milk"])
+        XCTAssertEqual(verdict.matches?.map(\.source), [.allergens])
     }
 
-    /// Tier 1 outranks tier 3, so the same item present in both is reported as
-    /// the declared allergen it is.
-    func testDeclaredAllergenOutranksIngredientTags() throws {
+    /// A restriction present in two tiers is listed once, attributed to the
+    /// earlier one — the tiers no longer stop, so this is what keeps milk from
+    /// appearing twice.
+    func testRestrictionInTwoTiersIsReportedOnce() throws {
         let bar = try product("""
         {
           "allergens_tags": ["en:milk"],
@@ -60,10 +66,9 @@ final class VerdictEngineTests: XCTestCase {
             countTraces: false
         )
 
-        guard case .contains(_, let source) = verdict else {
-            return XCTFail("expected contains, got \(verdict)")
-        }
-        XCTAssertEqual(source, .allergens)
+        // Present in two tiers, reported once, attributed to the earlier.
+        XCTAssertEqual(verdict.matches?.map(\.name), ["Milk"])
+        XCTAssertEqual(verdict.matches?.map(\.source), [.allergens])
     }
 
     // MARK: - Tier 2: traces
@@ -109,11 +114,8 @@ final class VerdictEngineTests: XCTestCase {
             countTraces: false
         )
 
-        guard case .contains(let matched, let source) = verdict else {
-            return XCTFail("expected contains, got \(verdict)")
-        }
-        XCTAssertEqual(matched, "Milk")
-        XCTAssertEqual(source, .traces)
+        XCTAssertEqual(verdict.matches?.map(\.name), ["Milk"])
+        XCTAssertEqual(verdict.matches?.map(\.source), [.traces])
     }
 
     func testTraceMatchesWhenCountTracesOn() throws {
@@ -131,11 +133,8 @@ final class VerdictEngineTests: XCTestCase {
             countTraces: true
         )
 
-        guard case .contains(let matched, let source) = verdict else {
-            return XCTFail("expected contains, got \(verdict)")
-        }
-        XCTAssertEqual(matched, "Milk")
-        XCTAssertEqual(source, .traces)
+        XCTAssertEqual(verdict.matches?.map(\.name), ["Milk"])
+        XCTAssertEqual(verdict.matches?.map(\.source), [.traces])
     }
 
     /// `traces_from_ingredients` is free text rather than a tag list, and is
@@ -155,11 +154,91 @@ final class VerdictEngineTests: XCTestCase {
             countTraces: true
         )
 
-        guard case .contains(let matched, let source) = verdict else {
-            return XCTFail("expected contains, got \(verdict)")
+        XCTAssertEqual(verdict.matches?.map(\.name), ["Peanuts"])
+        XCTAssertEqual(verdict.matches?.map(\.source), [.traces])
+    }
+
+    // MARK: - Several matches
+
+    /// Two restrictions, caught at different tiers, both belong on the verdict.
+    func testTwoMatchesAreBothReported() throws {
+        let cups = try product("""
+        {
+          "product_name": "Peanut Butter Cups",
+          "ingredients_text_en": "Milk chocolate, peanuts, salt.",
+          "allergens_tags": ["en:milk"],
+          "ingredients_tags": ["en:peanuts", "en:sugar"]
         }
-        XCTAssertEqual(matched, "Peanuts")
-        XCTAssertEqual(source, .traces)
+        """)
+
+        let verdict = VerdictEngine.evaluate(
+            product: cups,
+            restrictions: [milk, peanuts],
+            countTraces: false
+        )
+
+        XCTAssertEqual(verdict.matches?.map(\.name), ["Milk", "Peanuts"])
+        XCTAssertEqual(verdict.matches?.map(\.source), [.allergens, .ingredients])
+    }
+
+    /// Matches come back in tier order regardless of how the restrictions were
+    /// saved, so the sentence reads from strongest evidence down.
+    func testMatchesAreOrderedByTierNotBySavedOrder() throws {
+        let cups = try product("""
+        {
+          "ingredients_text_en": "Milk chocolate, peanuts.",
+          "allergens_tags": ["en:peanuts"],
+          "ingredients_tags": ["en:milk"]
+        }
+        """)
+
+        let verdict = VerdictEngine.evaluate(
+            product: cups,
+            restrictions: [milk, peanuts],
+            countTraces: false
+        )
+
+        XCTAssertEqual(verdict.matches?.map(\.name), ["Peanuts", "Milk"])
+        XCTAssertEqual(verdict.matches?.map(\.source), [.allergens, .ingredients])
+    }
+
+    /// However many matched, the history chip says the same thing.
+    func testChipLabelIsFlaggedForAnyNumberOfMatches() {
+        let one = Verdict.contains(matches: [VerdictMatch(name: "Milk", source: .allergens)])
+        let two = Verdict.contains(matches: [
+            VerdictMatch(name: "Milk", source: .allergens),
+            VerdictMatch(name: "Peanuts", source: .ingredients)
+        ])
+
+        XCTAssertEqual(one.chipLabel, "Flagged")
+        XCTAssertEqual(two.chipLabel, "Flagged")
+    }
+
+    // MARK: - Titles and reasons
+
+    func testTitleListsMatches() {
+        func title(_ names: [String]) -> String {
+            Verdict.contains(
+                matches: names.map { VerdictMatch(name: $0, source: .allergens) }
+            ).title
+        }
+
+        XCTAssertEqual(title(["Milk"]), "Contains milk")
+        XCTAssertEqual(title(["Milk", "Peanuts"]), "Contains milk and peanuts")
+        XCTAssertEqual(title(["Milk", "Peanuts", "Soy"]), "Contains milk, peanuts and soy")
+    }
+
+    /// One line per match, each naming its own source.
+    func testReasonLinesNameEachSource() {
+        let verdict = Verdict.contains(matches: [
+            VerdictMatch(name: "Milk", source: .allergens),
+            VerdictMatch(name: "Peanuts", source: .traces)
+        ])
+
+        XCTAssertEqual(verdict.reasonLines, [
+            "Milk is listed in this product's declared allergens.",
+            "Peanuts is listed in this product's may-contain traces."
+        ])
     }
 
     // MARK: - Clear

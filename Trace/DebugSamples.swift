@@ -25,13 +25,13 @@ struct DebugSample: Identifiable {
         ScanResult(verdict: verdict, product: product, barcode: barcode)
     }
 
-    static let all = [containsMilk, noMatch, notEnoughData, notFound]
+    static let all = [containsMilk, containsTwo, noMatch, notEnoughData, notFound]
 
     // MARK: - The four states
 
     static let containsMilk = DebugSample(
         name: "Contains milk",
-        verdict: .contains(matched: "Milk", source: .allergens),
+        verdict: .contains(matches: [VerdictMatch(name: "Milk", source: .allergens)]),
         product: decoded("""
         {
           "product_name": "Dark Chocolate Bar",
@@ -46,6 +46,31 @@ struct DebugSample: Identifiable {
         }
         """),
         barcode: "4800361410816"
+    )
+
+    /// Two matches at different tiers, for checking the title's list form and
+    /// the one-line-per-match Why card.
+    static let containsTwo = DebugSample(
+        name: "Contains milk and peanuts",
+        verdict: .contains(matches: [
+            VerdictMatch(name: "Milk", source: .allergens),
+            VerdictMatch(name: "Peanuts", source: .traces)
+        ]),
+        product: decoded("""
+        {
+          "product_name": "Peanut Butter Cups",
+          "brands": "Choco Treats",
+          "ingredients_text_en": "Milk chocolate (sugar, cocoa butter, milk), \
+        peanuts, salt.",
+          "allergens_tags": ["en:milk"],
+          "traces_tags": ["en:peanuts"],
+          "nutriments": {
+            "energy-kcal_100g": 515, "sugars_100g": 48.0, "fat_100g": 29.0,
+            "saturated-fat_100g": 11.0, "salt_100g": 0.4, "proteins_100g": 9.0
+          }
+        }
+        """),
+        barcode: "0034000002405"
     )
 
     /// Salt is a measured 0.0 here on purpose: a real zero must still read as

@@ -17,6 +17,8 @@ struct ScanView: View {
     @State private var isLookingUp = false
     @State private var result: ScanResult?
 
+    @State private var repeatGuard = RepeatScanGuard()
+
     /// The camera runs only when nothing is in front of it.
     private var isScannerPaused: Bool {
         isLookingUp || result != nil || isEnteringManually
@@ -45,6 +47,10 @@ struct ScanView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Theme.paper.ignoresSafeArea())
         .onAppear { availability = .current() }
+        .onChange(of: result?.id) { id in
+            guard id == nil else { return }
+            repeatGuard.resultDismissed()
+        }
         .sheet(isPresented: $isEnteringManually) {
             ManualBarcodeView()
                 .presentationDetents([.medium])
@@ -95,9 +101,12 @@ struct ScanView: View {
         .frame(maxHeight: .infinity)
     }
 
-    private func handleScan(_ barcode: String) {
-        guard !isLookingUp, result == nil else { return }
+    /// Returns whether the scan was taken. Declining one leaves the camera
+    /// running, so the next barcode is still detected.
+    private func handleScan(_ barcode: String) -> Bool {
+        guard !isLookingUp, result == nil, repeatGuard.allows(barcode) else { return false }
 
+        repeatGuard.took(barcode)
         isLookingUp = true
 
         Task {
@@ -129,6 +138,8 @@ struct ScanView: View {
                 result = nothingFound(barcode)
             }
         }
+
+        return true
     }
 
     /// The lookup came back with no product to say anything about.
