@@ -55,4 +55,5 @@ struct RootView: View {
 
 #Preview {
     RootView()
+        .environmentObject(RestrictionsModel())
 }

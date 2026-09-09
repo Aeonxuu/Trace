@@ -9,6 +9,8 @@ struct ScanView: View {
 
     private let service = ProductService()
 
+    @EnvironmentObject private var restrictions: RestrictionsModel
+
     @State private var availability = ScannerAvailability.current()
     @State private var isEnteringManually = false
     @State private var isLookingUp = false
@@ -103,12 +105,12 @@ struct ScanView: View {
             do {
                 switch try await service.fetchProduct(barcode: barcode) {
                 case .found(let product):
-                    // Hardcoded until the verdict engine lands.
-                    result = ScanResult(
-                        verdict: .contains(matched: "milk", source: "declared allergens"),
+                    let verdict = VerdictEngine.evaluate(
                         product: product,
-                        barcode: barcode
+                        restrictions: restrictions.restrictions,
+                        countTraces: restrictions.countsMayContain
                     )
+                    result = ScanResult(verdict: verdict, product: product, barcode: barcode)
 
                 case .notFound:
                     result = nothingFound(barcode)
@@ -135,4 +137,5 @@ struct ScanView: View {
 
 #Preview {
     ScanView()
+        .environmentObject(RestrictionsModel())
 }

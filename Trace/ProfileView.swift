@@ -9,7 +9,7 @@ import SwiftUI
 
 struct ProfileView: View {
 
-    @StateObject private var model = RestrictionsModel()
+    @EnvironmentObject private var model: RestrictionsModel
     @State private var isPicking = false
 
     var body: some View {
@@ -35,7 +35,6 @@ struct ProfileView: View {
         }
         .frame(maxWidth: .infinity)
         .background(Theme.paper.ignoresSafeArea())
-        .task { await model.loadIfNeeded() }
         .sheet(isPresented: $isPicking) {
             RestrictionPickerView(selected: model.selectedTagIDs) { selection in
                 model.apply(selection: selection)
@@ -269,4 +268,5 @@ private struct SeverityControl: View {
 
 #Preview {
     ProfileView()
+        .environmentObject(RestrictionsModel())
 }

@@ -7,12 +7,35 @@
 
 import SwiftUI
 
+/// Which of the five tiers in CLAUDE.md produced a match.
+///
+/// Carried on the verdict so the Why card can name the field and not just the
+/// ingredient: "listed in this product's declared allergens" says something
+/// different from "listed in this product's additives".
+enum MatchSource: String, Hashable, CaseIterable {
+    case allergens
+    case traces
+    case ingredients
+    case ingredientAnalysis
+    case additives
+
+    /// Worded to drop into the Why sentence.
+    var phrase: String {
+        switch self {
+        case .allergens: return "declared allergens"
+        case .traces: return "may-contain traces"
+        case .ingredients: return "ingredient list"
+        case .ingredientAnalysis: return "ingredient analysis"
+        case .additives: return "additives"
+        }
+    }
+}
+
 enum Verdict {
 
     /// Matched something the user avoids. `matched` is the item as it should
-    /// read on screen; `source` is the field it turned up in, worded to drop
-    /// into a sentence — "declared allergens", "ingredients", "additives".
-    case contains(matched: String, source: String)
+    /// read on screen; `source` is the tier that caught it.
+    case contains(matched: String, source: MatchSource)
 
     case clear
     case unknown
@@ -24,7 +47,7 @@ enum Verdict {
 
     var title: String {
         switch self {
-        case .contains(let matched, _): return "Contains \(matched)"
+        case .contains(let matched, _): return "Contains \(matched.lowercased())"
         case .clear: return "No match found"
         case .unknown: return "Not enough data"
         case .notFound: return "No product found"
@@ -56,7 +79,10 @@ enum Verdict {
     var reason: String {
         switch self {
         case .contains(let matched, let source):
-            return "\(matched.capitalized) is listed in this product's \(source)."
+            // `matched` arrives sentence-cased from the catalog, so it is used
+            // as written: `.capitalized` would title-case "sulphur dioxide and
+            // sulphites".
+            return "\(matched) is listed in this product's \(source.phrase)."
         case .clear:
             return "None of your avoided ingredients appear in this product."
         case .unknown:

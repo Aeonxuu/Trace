@@ -296,7 +296,7 @@ struct ResultView: View {
 #if DEBUG
 #Preview("Contains") {
     ResultView(
-        verdict: .contains(matched: "milk", source: "declared allergens"),
+        verdict: .contains(matched: "Milk", source: .allergens),
         product: DebugSample.containsMilk.product,
         barcode: DebugSample.containsMilk.barcode,
         onScanNext: {}

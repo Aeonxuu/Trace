@@ -31,7 +31,7 @@ struct DebugSample: Identifiable {
 
     static let containsMilk = DebugSample(
         name: "Contains milk",
-        verdict: .contains(matched: "milk", source: "declared allergens"),
+        verdict: .contains(matched: "Milk", source: .allergens),
         product: decoded("""
         {
           "product_name": "Dark Chocolate Bar",
