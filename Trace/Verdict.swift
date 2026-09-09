@@ -12,7 +12,7 @@ import SwiftUI
 /// Carried on the verdict so the Why card can name the field and not just the
 /// ingredient: "listed in this product's declared allergens" says something
 /// different from "listed in this product's additives".
-enum MatchSource: String, Hashable, CaseIterable {
+enum MatchSource: String, Codable, Hashable, CaseIterable {
     case allergens
     case traces
     case ingredients
@@ -31,7 +31,7 @@ enum MatchSource: String, Hashable, CaseIterable {
     }
 }
 
-enum Verdict {
+enum Verdict: Codable, Hashable {
 
     /// Matched something the user avoids. `matched` is the item as it should
     /// read on screen; `source` is the tier that caught it.
@@ -91,6 +91,22 @@ enum Verdict {
             return "Nothing came back for this barcode. It may not be in Open "
                 + "Food Facts yet, or the lookup did not go through."
         }
+    }
+
+    /// Short form, for the chips on Today and in History.
+    var chipLabel: String {
+        switch self {
+        case .contains: return "Flagged"
+        case .clear: return "No match"
+        case .unknown: return "No data"
+        case .notFound: return "Not found"
+        }
+    }
+
+    /// Whether this verdict flagged something, for counting.
+    var isContains: Bool {
+        if case .contains = self { return true }
+        return false
     }
 
     /// The term to highlight in the ingredient list.

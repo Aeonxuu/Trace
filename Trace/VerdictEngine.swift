@@ -8,7 +8,7 @@
 
 import Foundation
 
-enum VerdictEngine {
+nonisolated enum VerdictEngine {
 
     /// Checks a product against what the user avoids.
     ///

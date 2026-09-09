@@ -10,12 +10,12 @@ import Foundation
 
 /// The response envelope. `status` decides found vs. not found, not the
 /// HTTP status code.
-struct ProductResponse: Decodable {
+nonisolated struct ProductResponse: Decodable {
     let status: Int?
     let product: Product?
 }
 
-struct Product: Decodable {
+nonisolated struct Product: Decodable {
 
     let productName: String?
     let brands: String?
@@ -88,7 +88,7 @@ struct Product: Decodable {
     }
 }
 
-struct Nutriments: Decodable {
+nonisolated struct Nutriments: Decodable {
 
     let energyKcal100g: Double?
 
@@ -132,13 +132,13 @@ private extension KeyedDecodingContainer {
     /// Decodes a key, yielding nil when it is absent, null, or the wrong
     /// type. Open Food Facts is crowd-sourced, so one malformed field must
     /// not cost us the whole product.
-    func lenient<T: Decodable>(_ type: T.Type, _ key: Key) -> T? {
+    nonisolated func lenient<T: Decodable>(_ type: T.Type, _ key: Key) -> T? {
         try? decodeIfPresent(type, forKey: key)
     }
 }
 
 private extension String {
-    var nonEmpty: String? {
+    nonisolated var nonEmpty: String? {
         let trimmed = trimmingCharacters(in: .whitespacesAndNewlines)
         return trimmed.isEmpty ? nil : trimmed
     }

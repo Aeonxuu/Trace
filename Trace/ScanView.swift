@@ -10,6 +10,7 @@ struct ScanView: View {
     private let service = ProductService()
 
     @EnvironmentObject private var restrictions: RestrictionsModel
+    @EnvironmentObject private var history: ScanHistoryModel
 
     @State private var availability = ScannerAvailability.current()
     @State private var isEnteringManually = false
@@ -111,6 +112,7 @@ struct ScanView: View {
                         countTraces: restrictions.countsMayContain
                     )
                     result = ScanResult(verdict: verdict, product: product, barcode: barcode)
+                    log(verdict, product: product, barcode: barcode)
 
                 case .notFound:
                     result = nothingFound(barcode)
@@ -131,11 +133,27 @@ struct ScanView: View {
 
     /// The lookup came back with no product to say anything about.
     private func nothingFound(_ barcode: String) -> ScanResult {
-        ScanResult(verdict: .notFound, product: nil, barcode: barcode)
+        log(.notFound, product: nil, barcode: barcode)
+        return ScanResult(verdict: .notFound, product: nil, barcode: barcode)
+    }
+
+    /// Records the scan for Today and History. Keeps only what those rows
+    /// draw; reopening one refetches the product by barcode.
+    private func log(_ verdict: Verdict, product: Product?, barcode: String) {
+        history.record(
+            ScanRecord(
+                barcode: barcode,
+                productName: product?.productName,
+                brands: product?.brands,
+                imageURL: product?.imageURL,
+                verdict: verdict
+            )
+        )
     }
 }
 
 #Preview {
     ScanView()
         .environmentObject(RestrictionsModel())
+        .environmentObject(ScanHistoryModel())
 }

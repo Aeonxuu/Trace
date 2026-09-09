@@ -20,6 +20,10 @@ enum Theme {
     /// of the named tokens in CLAUDE.md.
     static let hairline = Color(hex: 0xE5E7EB)
 
+    /// Ink lifted just enough to read as a well on an ink surface, for the
+    /// scan card's icon. From the Figma Today frame; also not a named token.
+    static let inkWell = Color(hex: 0x1D2A44)
+
     // MARK: - Verdicts
     //
     // These appear only on verdicts. Never on buttons or other UI.
