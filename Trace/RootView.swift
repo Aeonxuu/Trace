@@ -11,10 +11,28 @@ import UIKit
 struct RootView: View {
 
     init() {
-        // `.tint` below colors the selected item; this colors the unselected
-        // icons and labels. Deliberately not a UITabBarAppearance: configuring
-        // one also restyles the bar's background material.
-        UITabBar.appearance().unselectedItemTintColor = UIColor(Theme.muted)
+        // An unconfigured tab bar uses a translucent material, so it darkens
+        // as content scrolls under it. An opaque appearance on both the
+        // standard and scroll-edge states holds it at surface either way.
+        let appearance = UITabBarAppearance()
+        appearance.configureWithOpaqueBackground()
+        appearance.backgroundColor = UIColor(Theme.surface)
+
+        // configureWithOpaqueBackground resets item colors, so the tints have
+        // to be set here rather than on UITabBar directly.
+        for items in [
+            appearance.stackedLayoutAppearance,
+            appearance.inlineLayoutAppearance,
+            appearance.compactInlineLayoutAppearance
+        ] {
+            items.normal.iconColor = UIColor(Theme.muted)
+            items.normal.titleTextAttributes = [.foregroundColor: UIColor(Theme.muted)]
+            items.selected.iconColor = UIColor(Theme.ink)
+            items.selected.titleTextAttributes = [.foregroundColor: UIColor(Theme.ink)]
+        }
+
+        UITabBar.appearance().standardAppearance = appearance
+        UITabBar.appearance().scrollEdgeAppearance = appearance
     }
 
     var body: some View {
