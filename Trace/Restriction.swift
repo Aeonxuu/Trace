@@ -1,16 +1,8 @@
-//
-//  Restriction.swift
-//  Trace
-//
-//  What the user avoids, and how hard they avoid it.
-//
+// what the user avoids, and how hard
 
 import Foundation
 
-/// How seriously a match should be taken.
-///
-/// `severe` is what lets the verdict logic count "may contain" traces even
-/// when the global toggle is off.
+// severe is what lets traces count while the global toggle is off
 enum Severity: String, Codable, CaseIterable, Hashable {
     case avoid
     case severe
@@ -23,8 +15,7 @@ enum Severity: String, Codable, CaseIterable, Hashable {
     }
 }
 
-/// One saved avoidance. `tagID` is the Open Food Facts tag ("en:milk"), which
-/// is what the verdict logic matches on; `name` is only ever for display.
+// one saved avoidance, tagID is matched on and name is only for display
 struct Restriction: Identifiable, Codable, Hashable {
 
     var id: String { tagID }
@@ -34,10 +25,7 @@ struct Restriction: Identifiable, Codable, Hashable {
     var severity: Severity
 }
 
-/// Everything the Profile screen owns, as one value.
-///
-/// Kept together on purpose: a Firestore implementation can read and write it
-/// as a single document without the store growing a method per field.
+// everything profile owns as one value, so firestore can write one document
 struct RestrictionSettings: Codable, Equatable {
     var restrictions: [Restriction] = []
     var countsMayContain = false

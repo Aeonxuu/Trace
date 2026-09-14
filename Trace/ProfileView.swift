@@ -1,9 +1,4 @@
-//
-//  ProfileView.swift
-//  Trace
-//
-//  Saved restrictions, the trace toggle, and the rows waiting on Firebase.
-//
+// profile tab: saved restrictions, trace toggle, firebase placeholders
 
 import SwiftUI
 
@@ -12,8 +7,7 @@ struct ProfileView: View {
     @EnvironmentObject private var model: RestrictionsModel
     @State private var isPicking = false
 
-    /// Held rather than removed on tap: the × sits next to a segmented
-    /// control, so it is easy to hit by accident.
+    // held, not removed on tap, the × is easy to hit by accident
     @State private var restrictionToRemove: Restriction?
 
     var body: some View {
@@ -69,7 +63,7 @@ struct ProfileView: View {
         )
     }
 
-    // MARK: - Avoided ingredients
+    // MARK: - avoided ingredients
 
     private var avoidedCard: some View {
         card {
@@ -153,7 +147,7 @@ struct ProfileView: View {
         )
     }
 
-    // MARK: - Trace toggle
+    // MARK: - trace toggle
 
     private var traceToggleCard: some View {
         card(spacing: 0) {
@@ -167,9 +161,9 @@ struct ProfileView: View {
         }
     }
 
-    // MARK: - Waiting on Firebase
+    // MARK: - waiting on firebase
     //
-    // Static rows. Nothing here does anything until the Firebase phase.
+    // static rows, inert until the firebase phase
 
     private var accountCard: some View {
         card(spacing: 0) {
@@ -196,8 +190,7 @@ struct ProfileView: View {
         case value(String)
     }
 
-    /// Deliberately not a Button: these rows are placeholders, and a row that
-    /// depresses under a finger promises something the app cannot do yet.
+    // not a Button on purpose, these rows are placeholders
     private func staticRow(_ label: String, trailing: RowTrailing) -> some View {
         HStack(spacing: 12) {
             Text(label)
@@ -229,7 +222,7 @@ struct ProfileView: View {
             .frame(height: 1)
     }
 
-    // MARK: - Card shell
+    // MARK: - card shell
 
     private func card<Content: View>(
         spacing: CGFloat = 12,
@@ -243,14 +236,8 @@ struct ProfileView: View {
     }
 }
 
-/// Two-segment severity control.
-///
-/// Hand-built rather than `Picker(.segmented)`: that styles only through
-/// `UISegmentedControl.appearance()`, which is process-wide, and its default
-/// palette sets two near-identical greys against each other.
-///
-/// The track sits on paper so it reads as recessed into the white card, and
-/// carries no border: nothing else on this screen is outlined.
+// two-segment severity control, hand-built because Picker(.segmented) styles
+// only process-wide
 private struct SeverityControl: View {
 
     @Binding var severity: Severity

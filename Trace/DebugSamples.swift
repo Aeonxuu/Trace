@@ -1,17 +1,10 @@
-//
-//  DebugSamples.swift
-//  Trace
-//
-//  Temporary. Stand-in scans for checking the Result screen without a
-//  barcode in front of the camera. Delete once the verdict engine can
-//  produce all four states from real lookups.
-//
+// temporary: canned scans for checking the result screen without a camera
 
 import Foundation
 
 #if DEBUG
 
-/// One canned scan, named for the state it demonstrates.
+// one canned scan, named for the state it shows
 struct DebugSample: Identifiable {
 
     var id: String { name }
@@ -27,7 +20,7 @@ struct DebugSample: Identifiable {
 
     static let all = [containsMilk, containsTwo, noMatch, notEnoughData, notFound]
 
-    // MARK: - The four states
+    // MARK: - the four states
 
     static let containsMilk = DebugSample(
         name: "Contains milk",
@@ -48,8 +41,7 @@ struct DebugSample: Identifiable {
         barcode: "4800361410816"
     )
 
-    /// Two matches at different tiers, for checking the title's list form and
-    /// the one-line-per-match Why card.
+    // two matches at different tiers
     static let containsTwo = DebugSample(
         name: "Contains milk and peanuts",
         verdict: .contains(matches: [
@@ -73,8 +65,7 @@ struct DebugSample: Identifiable {
         barcode: "0034000002405"
     )
 
-    /// Salt is a measured 0.0 here on purpose: a real zero must still read as
-    /// a zero, which is the whole reason missing values get an em dash.
+    // salt is a measured 0.0 on purpose, a real zero must read as zero
     static let noMatch = DebugSample(
         name: "No match found",
         verdict: .clear,
@@ -93,8 +84,7 @@ struct DebugSample: Identifiable {
         barcode: "5010026503105"
     )
 
-    /// No ingredient text, no allergen tags, no nutriments — the product Open
-    /// Food Facts knows the name of and nothing else.
+    // a name and nothing else
     static let notEnoughData = DebugSample(
         name: "Not enough data",
         verdict: .unknown,

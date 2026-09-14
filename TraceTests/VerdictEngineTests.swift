@@ -1,12 +1,9 @@
-//
-//  VerdictEngineTests.swift
-//  TraceTests
-//
+// verdict engine tests
 
 import XCTest
 @testable import Trace
 
-/// Reaches into the verdict without a `guard case` at every call site.
+// reaches into the verdict without a guard case at every call site
 private extension Verdict {
     var matches: [VerdictMatch]? {
         if case .contains(let matches) = self { return matches }
@@ -16,19 +13,18 @@ private extension Verdict {
 
 final class VerdictEngineTests: XCTestCase {
 
-    // MARK: - Fixtures
+    // MARK: - fixtures
 
     private let milk = Restriction(tagID: "en:milk", name: "Milk", severity: .avoid)
     private let severeMilk = Restriction(tagID: "en:milk", name: "Milk", severity: .severe)
     private let peanuts = Restriction(tagID: "en:peanuts", name: "Peanuts", severity: .avoid)
 
-    /// Product has no memberwise initializer by design — every field is
-    /// decoded — so fixtures come in the same way real products do.
+    // fixtures decode the way real products do, Product has no memberwise init
     private func product(_ json: String) throws -> Product {
         try JSONDecoder().decode(Product.self, from: Data(json.utf8))
     }
 
-    // MARK: - Tier 1: declared allergens
+    // MARK: - tier 1: declared allergens
 
     func testDeclaredAllergenMatches() throws {
         let bar = try product("""
@@ -49,9 +45,7 @@ final class VerdictEngineTests: XCTestCase {
         XCTAssertEqual(verdict.matches?.map(\.source), [.allergens])
     }
 
-    /// A restriction present in two tiers is listed once, attributed to the
-    /// earlier one — the tiers no longer stop, so this is what keeps milk from
-    /// appearing twice.
+    // present in two tiers, listed once, attributed to the earlier
     func testRestrictionInTwoTiersIsReportedOnce() throws {
         let bar = try product("""
         {
@@ -66,16 +60,13 @@ final class VerdictEngineTests: XCTestCase {
             countTraces: false
         )
 
-        // Present in two tiers, reported once, attributed to the earlier.
         XCTAssertEqual(verdict.matches?.map(\.name), ["Milk"])
         XCTAssertEqual(verdict.matches?.map(\.source), [.allergens])
     }
 
-    // MARK: - Tier 2: traces
+    // MARK: - tier 2: traces
 
-    /// An avoid-level restriction does not want to hear about traces while the
-    /// global toggle is off, so the product reads clear on the strength of its
-    /// ingredient list.
+    // avoid-level plus toggle off means traces are ignored
     func testTraceIgnoredWhenCountTracesOffAndSeverityIsAvoid() throws {
         let oats = try product("""
         {
@@ -97,8 +88,7 @@ final class VerdictEngineTests: XCTestCase {
         }
     }
 
-    /// Severity carries the trace on its own: a severe restriction is matched
-    /// even with the global toggle off.
+    // severity carries the trace on its own
     func testTraceMatchesOnSeverityWhenCountTracesOff() throws {
         let oats = try product("""
         {
@@ -137,8 +127,7 @@ final class VerdictEngineTests: XCTestCase {
         XCTAssertEqual(verdict.matches?.map(\.source), [.traces])
     }
 
-    /// `traces_from_ingredients` is free text rather than a tag list, and is
-    /// read alongside `traces_tags`.
+    // traces_from_ingredients is free text, read alongside traces_tags
     func testTraceFromIngredientsTextMatches() throws {
         let biscuits = try product("""
         {
@@ -158,9 +147,9 @@ final class VerdictEngineTests: XCTestCase {
         XCTAssertEqual(verdict.matches?.map(\.source), [.traces])
     }
 
-    // MARK: - Several matches
+    // MARK: - several matches
 
-    /// Two restrictions, caught at different tiers, both belong on the verdict.
+    // two restrictions caught at different tiers both belong on the verdict
     func testTwoMatchesAreBothReported() throws {
         let cups = try product("""
         {
@@ -181,8 +170,7 @@ final class VerdictEngineTests: XCTestCase {
         XCTAssertEqual(verdict.matches?.map(\.source), [.allergens, .ingredients])
     }
 
-    /// Matches come back in tier order regardless of how the restrictions were
-    /// saved, so the sentence reads from strongest evidence down.
+    // tier order, not saved order
     func testMatchesAreOrderedByTierNotBySavedOrder() throws {
         let cups = try product("""
         {
@@ -202,7 +190,7 @@ final class VerdictEngineTests: XCTestCase {
         XCTAssertEqual(verdict.matches?.map(\.source), [.allergens, .ingredients])
     }
 
-    /// However many matched, the history chip says the same thing.
+    // however many matched, the chip says the same thing
     func testChipLabelIsFlaggedForAnyNumberOfMatches() {
         let one = Verdict.contains(matches: [VerdictMatch(name: "Milk", source: .allergens)])
         let two = Verdict.contains(matches: [
@@ -214,7 +202,7 @@ final class VerdictEngineTests: XCTestCase {
         XCTAssertEqual(two.chipLabel, "Flagged")
     }
 
-    // MARK: - Titles and reasons
+    // MARK: - titles and reasons
 
     func testTitleListsMatches() {
         func title(_ names: [String]) -> String {
@@ -228,7 +216,7 @@ final class VerdictEngineTests: XCTestCase {
         XCTAssertEqual(title(["Milk", "Peanuts", "Soy"]), "Contains milk, peanuts and soy")
     }
 
-    /// One line per match, each naming its own source.
+    // one line per match, each naming its own source
     func testReasonLinesNameEachSource() {
         let verdict = Verdict.contains(matches: [
             VerdictMatch(name: "Milk", source: .allergens),
@@ -241,7 +229,7 @@ final class VerdictEngineTests: XCTestCase {
         ])
     }
 
-    // MARK: - Clear
+    // MARK: - clear
 
     func testCleanProductIsClear() throws {
         let oats = try product("""
@@ -264,8 +252,7 @@ final class VerdictEngineTests: XCTestCase {
         }
     }
 
-    /// A near miss must not match: whole tag values are compared, so milk does
-    /// not turn up inside coconut milk.
+    // a near miss must not match
     func testSimilarTagDoesNotMatch() throws {
         let drink = try product("""
         {
@@ -285,7 +272,7 @@ final class VerdictEngineTests: XCTestCase {
         }
     }
 
-    // MARK: - Unknown
+    // MARK: - unknown
 
     func testNoIngredientDataIsUnknown() throws {
         let water = try product("""
@@ -306,8 +293,7 @@ final class VerdictEngineTests: XCTestCase {
         }
     }
 
-    /// Empty arrays and an empty ingredient string are missing data, not
-    /// evidence of absence.
+    // empty fields are missing data, not evidence of absence
     func testEmptyFieldsAreUnknownRatherThanClear() throws {
         let water = try product("""
         {
@@ -330,8 +316,7 @@ final class VerdictEngineTests: XCTestCase {
         }
     }
 
-    /// Additives alone are not one of the three fields CLAUDE.md names, so
-    /// they cannot lift a product out of unknown.
+    // additives alone cannot lift a product out of unknown
     func testAdditivesAloneDoNotMakeAProductCheckable() throws {
         let soda = try product("""
         {

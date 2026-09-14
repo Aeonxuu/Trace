@@ -1,15 +1,8 @@
-//
-//  RestrictionStore.swift
-//  Trace
-//
-//  Persistence for the Profile screen, behind a protocol so the UserDefaults
-//  implementation can be swapped for Firestore later.
-//
+// profile persistence behind a protocol, swappable for firestore later
 
 import Foundation
 
-/// Async on both sides even though UserDefaults is not, so that swapping in a
-/// Firestore implementation changes this file and nothing above it.
+// async on both sides, so a firestore swap changes this file and nothing above
 protocol RestrictionStore {
     func load() async -> RestrictionSettings
     func save(_ settings: RestrictionSettings) async
@@ -17,7 +10,7 @@ protocol RestrictionStore {
 
 struct UserDefaultsRestrictionStore: RestrictionStore {
 
-    /// Versioned: a later shape change can migrate instead of guessing.
+    // versioned, so a later shape change can migrate
     private static let key = "trace.restrictionSettings.v1"
 
     private let defaults: UserDefaults

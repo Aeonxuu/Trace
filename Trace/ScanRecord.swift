@@ -1,15 +1,8 @@
-//
-//  ScanRecord.swift
-//  Trace
-//
-//  One completed scan, kept so Today and History have something to read.
-//
+// one completed scan, kept for today and history
 
 import Foundation
 
-/// Deliberately not a whole `Product`: this is what the summary rows need to
-/// draw, and nothing more. Reopening a record refetches the product by
-/// barcode rather than trusting a copy that may be months stale.
+// only what the summary rows draw, reopening refetches by barcode
 struct ScanRecord: Identifiable, Codable, Hashable {
 
     let id: UUID
@@ -38,7 +31,7 @@ struct ScanRecord: Identifiable, Codable, Hashable {
         self.scannedAt = scannedAt
     }
 
-    /// What the summary row shows when Open Food Facts had no name for it.
+    // shown when open food facts had no name
     var displayName: String {
         productName ?? "Unknown product"
     }

@@ -1,15 +1,10 @@
-//
-//  BarcodeScannerView.swift
-//  Trace
-//
-//  VisionKit's data scanner, wrapped for SwiftUI.
-//
+// visionkit data scanner, wrapped for swiftui
 
 import SwiftUI
 import VisionKit
 import Vision
 
-/// Whether the scanner can run right now, and why not when it can't.
+// whether the scanner can run, and why not
 enum ScannerAvailability {
     case ready
     case unsupportedDevice
@@ -33,16 +28,12 @@ enum ScannerAvailability {
     }
 }
 
-/// Hosts the data scanner as a child controller.
-///
-/// `DataScannerViewController` is not open, so it can't be subclassed to hook
-/// `viewDidAppear`. Scanning has to start from there: called any earlier, while
-/// the camera preview still has no window, `startScanning()` throws.
+// hosts the scanner as a child controller, so scanning can start in viewDidAppear
 final class ScannerHostViewController: UIViewController {
 
     private let scanner: DataScannerViewController
 
-    /// Cleared once a barcode is captured, so scanning does not resume.
+    // cleared once a barcode is captured
     private var wantsScanning = true
 
     init(scanner: DataScannerViewController) {
@@ -80,7 +71,7 @@ final class ScannerHostViewController: UIViewController {
         }
     }
 
-    /// Stops scanning and keeps it stopped until `resumeScanning()`.
+    // stops until resumeScanning()
     func pauseScanning() {
         wantsScanning = false
         scanner.stopScanning()
@@ -98,11 +89,10 @@ final class ScannerHostViewController: UIViewController {
 
 struct BarcodeScannerView: UIViewControllerRepresentable {
 
-    /// Holds the camera still while a lookup runs and the result sheet is up.
+    // holds the camera still during a lookup
     let isPaused: Bool
 
-    /// Called with the payload of each barcode recognized. Returns whether
-    /// the scan was taken: a declined one must leave the camera running.
+    // returns whether the scan was taken, a declined one keeps the camera running
     let onScan: (String) -> Bool
 
     func makeCoordinator() -> Coordinator {
@@ -153,7 +143,7 @@ struct BarcodeScannerView: UIViewControllerRepresentable {
             self.onScan = onScan
         }
 
-        /// Re-arms the latch once the previous result is out of the way.
+        // re-arms the latch
         func prepareForNextScan() {
             hasScanned = false
         }
@@ -171,11 +161,7 @@ struct BarcodeScannerView: UIViewControllerRepresentable {
                     continue
                 }
 
-                // Latch and stop only once the screen has taken the scan.
-                // Stopping first cost us the camera for the rest of the
-                // session: re-arming happens in updateUIViewController, which
-                // only runs when SwiftUI re-renders, and a declined scan
-                // changes no state and so re-renders nothing.
+                // latch and stop only once the screen has taken the scan
                 guard onScan(payload) else { continue }
 
                 hasScanned = true

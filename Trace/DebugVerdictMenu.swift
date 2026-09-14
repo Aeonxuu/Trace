@@ -1,10 +1,4 @@
-//
-//  DebugVerdictMenu.swift
-//  Trace
-//
-//  Temporary. Long-press the Today screen to open the Result screen in each
-//  of its four states. Goes away once real scans can reach all four.
-//
+// temporary: long-press today to open the result screen in each state
 
 import SwiftUI
 
@@ -29,7 +23,7 @@ private struct DebugVerdictMenu: ViewModifier {
 
     func body(content: Content) -> some View {
         content
-            // The whole screen is the target, not just the text on it.
+            // the whole screen is the target
             .contentShape(Rectangle())
             .onLongPressGesture { isShowingMenu = true }
             .confirmationDialog(
@@ -41,8 +35,7 @@ private struct DebugVerdictMenu: ViewModifier {
                     Button(sample.name) { result = sample.scan }
                 }
             }
-            // Presented rather than pushed, so it is checked in the same
-            // sheet it appears in after a real scan.
+            // presented, not pushed, so it is the same sheet a real scan uses
             .sheet(item: $result) { scan in
                 ResultView(
                     verdict: scan.verdict,

@@ -1,17 +1,10 @@
-//
-//  RestrictionPickerView.swift
-//  Trace
-//
-//  Searchable multi-select over the bundled allergen catalog. Laid out from
-//  the Figma frame trace-onboarding-2.
-//
+// searchable multi-select over the allergen catalog, from trace-onboarding-2
 
 import SwiftUI
 
 struct RestrictionPickerView: View {
 
-    /// Seeded from what is already saved, so the sheet opens on the current
-    /// selection and Cancel really does discard.
+    // seeded from what is saved, so cancel really discards
     @State private var selection: Set<String>
     @State private var query = ""
 

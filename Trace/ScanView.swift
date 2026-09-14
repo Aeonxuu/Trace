@@ -1,7 +1,4 @@
-//
-//  ScanView.swift
-//  Trace
-//
+// scan tab: camera, lookup, result sheet
 
 import SwiftUI
 
@@ -19,7 +16,7 @@ struct ScanView: View {
 
     @State private var repeatGuard = RepeatScanGuard()
 
-    /// The camera runs only when nothing is in front of it.
+    // camera runs only when nothing is in front of it
     private var isScannerPaused: Bool {
         isLookingUp || result != nil || isEnteringManually
     }
@@ -101,8 +98,7 @@ struct ScanView: View {
         .frame(maxHeight: .infinity)
     }
 
-    /// Returns whether the scan was taken. Declining one leaves the camera
-    /// running, so the next barcode is still detected.
+    // returns whether the scan was taken, declining leaves the camera running
     private func handleScan(_ barcode: String) -> Bool {
         guard !isLookingUp, result == nil, repeatGuard.allows(barcode) else { return false }
 
@@ -127,9 +123,7 @@ struct ScanView: View {
                     result = nothingFound(barcode)
 
                 case .failed(let error):
-                    // A dead end either way for the person holding the phone,
-                    // so it lands on the same screen. The error is kept in the
-                    // log because the screen cannot carry it.
+                    // a dead end either way, so it lands on the same screen
                     print("Trace: lookup failed \(barcode) — \(error)")
                     result = nothingFound(barcode)
                 }
@@ -142,14 +136,13 @@ struct ScanView: View {
         return true
     }
 
-    /// The lookup came back with no product to say anything about.
+    // the lookup came back with no product
     private func nothingFound(_ barcode: String) -> ScanResult {
         log(.notFound, product: nil, barcode: barcode)
         return ScanResult(verdict: .notFound, product: nil, barcode: barcode)
     }
 
-    /// Records the scan for Today and History. Keeps only what those rows
-    /// draw; reopening one refetches the product by barcode.
+    // records the scan for today and history
     private func log(_ verdict: Verdict, product: Product?, barcode: String) {
         history.record(
             ScanRecord(

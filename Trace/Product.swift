@@ -1,15 +1,8 @@
-//
-//  Product.swift
-//  Trace
-//
-//  Open Food Facts response models. Only the fields CLAUDE.md names are
-//  modeled, and every one of them is optional.
-//
+// open food facts response models, every field optional
 
 import Foundation
 
-/// The response envelope. `status` decides found vs. not found, not the
-/// HTTP status code.
+// response envelope, status decides found vs not found
 nonisolated struct ProductResponse: Decodable {
     let status: Int?
     let product: Product?
@@ -62,18 +55,12 @@ nonisolated struct Product: Decodable {
         nutriments = container.lenient(Nutriments.self, .nutriments)
     }
 
-    /// English first, then the default language, then missing. An empty
-    /// string counts as missing: Open Food Facts sends "" for absent text.
+    // english first, then default language, "" counts as missing
     var ingredientText: String? {
         ingredientsTextEn?.nonEmpty ?? ingredientsText?.nonEmpty
     }
 
-    /// Energy per 100 g in kilocalories.
-    ///
-    /// `energy-kcal_100g` is already in kcal. Falling back to the plain
-    /// `energy` field means reading `energy_unit` first, since that value can
-    /// be either unit. A missing unit is treated as kJ, which is what Open
-    /// Food Facts sends by default.
+    // kcal per 100 g, falling back to energy + energy_unit, missing unit means kJ
     var energyKcalPer100g: Double? {
         if let kcal = nutriments?.energyKcal100g {
             return kcal
@@ -92,7 +79,7 @@ nonisolated struct Nutriments: Decodable {
 
     let energyKcal100g: Double?
 
-    /// Paired with `energyUnit`. Read neither one without the other.
+    // paired with energyUnit, never read one without the other
     let energy: Double?
     let energyUnit: String?
 
@@ -129,9 +116,7 @@ nonisolated struct Nutriments: Decodable {
 
 private extension KeyedDecodingContainer {
 
-    /// Decodes a key, yielding nil when it is absent, null, or the wrong
-    /// type. Open Food Facts is crowd-sourced, so one malformed field must
-    /// not cost us the whole product.
+    // nil when absent, null, or the wrong type, so one bad field costs only itself
     nonisolated func lenient<T: Decodable>(_ type: T.Type, _ key: Key) -> T? {
         try? decodeIfPresent(type, forKey: key)
     }

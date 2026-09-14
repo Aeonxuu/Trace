@@ -1,10 +1,4 @@
-//
-//  ManualBarcodeView.swift
-//  Trace
-//
-//  Types a barcode by hand and runs it through ProductService. Results go to
-//  the console for now.
-//
+// hand-typed barcode lookup, results print to the console
 
 import SwiftUI
 
@@ -126,7 +120,7 @@ struct ManualBarcodeView: View {
         return String(format: "%.1f g", value)
     }
 
-    /// Shows what the fallback path had to work with.
+    // what the energy fallback had to work with
     private func rawEnergy(_ nutriments: Nutriments?) -> String {
         guard let energy = nutriments?.energy else { return "missing" }
         return "\(energy) \(nutriments?.energyUnit ?? "no unit")"

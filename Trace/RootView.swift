@@ -1,9 +1,4 @@
-//
-//  RootView.swift
-//  Trace
-//
-//  The app's navigation shell.
-//
+// the app's navigation shell
 
 import SwiftUI
 import UIKit
@@ -17,15 +12,12 @@ struct RootView: View {
     @State private var selection = Tab.today
 
     init() {
-        // An unconfigured tab bar uses a translucent material, so it darkens
-        // as content scrolls under it. An opaque appearance on both the
-        // standard and scroll-edge states holds it at surface either way.
+        // opaque on both states, so the bar does not darken as content scrolls
         let appearance = UITabBarAppearance()
         appearance.configureWithOpaqueBackground()
         appearance.backgroundColor = UIColor(Theme.surface)
 
-        // configureWithOpaqueBackground resets item colors, so the tints have
-        // to be set here rather than on UITabBar directly.
+        // configureWithOpaqueBackground resets item colors, so tint them here
         for items in [
             appearance.stackedLayoutAppearance,
             appearance.inlineLayoutAppearance,

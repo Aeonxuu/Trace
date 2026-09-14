@@ -1,16 +1,8 @@
-//
-//  ScanHistoryStore.swift
-//  Trace
-//
-//  Scan history persistence, behind a protocol so the UserDefaults
-//  implementation can be swapped for Firestore later.
-//
+// scan history persistence behind a protocol, swappable for firestore later
 
 import Foundation
 
-/// Async on both sides even though UserDefaults is not, so that swapping in a
-/// Firestore implementation changes this file and nothing above it. Same shape
-/// as RestrictionStore.
+// async on both sides, same shape as RestrictionStore
 protocol ScanHistory {
     func load() async -> [ScanRecord]
     func save(_ records: [ScanRecord]) async
@@ -18,13 +10,10 @@ protocol ScanHistory {
 
 struct UserDefaultsScanHistory: ScanHistory {
 
-    /// Bumped to v2 when Verdict.contains went from one match to a list:
-    /// v1 records cannot decode into the new shape, and one failure would
-    /// take the whole array down with it. Old data is left in place, unread.
+    // v2: v1 records cannot decode into the multi-match shape
     private static let key = "trace.scanHistory.v2"
 
-    /// UserDefaults is loaded into memory whole, so the log is capped rather
-    /// than left to grow for the life of the install.
+    // userdefaults loads whole, so the log is capped
     static let limit = 200
 
     private let defaults: UserDefaults

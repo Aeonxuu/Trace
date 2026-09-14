@@ -1,10 +1,4 @@
-//
-//  RestrictionsModel.swift
-//  Trace
-//
-//  The Profile screen's state. The only thing that talks to RestrictionStore,
-//  so no view has to know where any of this is kept.
-//
+// profile state, the only thing that talks to RestrictionStore
 
 import Combine
 import Foundation
@@ -14,7 +8,7 @@ final class RestrictionsModel: ObservableObject {
 
     @Published private(set) var restrictions: [Restriction] = []
 
-    /// Whether "may contain" warnings count as a match. Writing it saves.
+    // whether "may contain" counts as a match, writing it saves
     @Published var countsMayContain = false {
         didSet {
             guard isLoaded, oldValue != countsMayContain else { return }
@@ -24,12 +18,10 @@ final class RestrictionsModel: ObservableObject {
 
     private let store: RestrictionStore
 
-    /// Guards the `didSet` above from writing back the value it just read.
+    // keeps the didSet above from writing back what it just read
     private var isLoaded = false
 
-    /// The default is built in here rather than as a default argument: a
-    /// default argument is evaluated outside the actor, which this type is
-    /// isolated to.
+    // default built in here, a default argument evaluates outside the actor
     init(store: RestrictionStore? = nil) {
         self.store = store ?? UserDefaultsRestrictionStore()
     }
@@ -47,8 +39,7 @@ final class RestrictionsModel: ObservableObject {
         isLoaded = true
     }
 
-    /// Replaces the saved set with what came back from the picker, keeping the
-    /// severity already chosen for anything that survived.
+    // replaces the saved set, keeping severities that survived
     func apply(selection: Set<String>) {
         let existing = Dictionary(
             restrictions.map { ($0.tagID, $0) },

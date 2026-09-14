@@ -1,16 +1,10 @@
-//
-//  HistoryView.swift
-//  Trace
-//
-//  Laid out from the Figma frame trace-history.
-//
+// history tab, from the figma frame trace-history
 
 import SwiftUI
 
 struct HistoryView: View {
 
-    /// One list, narrowed in place. Not three lists: a row deleted under one
-    /// filter has to be gone under the others too.
+    // one list narrowed in place, not three
     private enum Filter: String, CaseIterable, Identifiable {
         case all = "All"
         case flagged = "Flagged"
@@ -69,7 +63,7 @@ struct HistoryView: View {
         .scanResultSheet($reopener.result)
     }
 
-    // MARK: - Filters
+    // MARK: - filters
 
     private var filterRow: some View {
         ScrollView(.horizontal, showsIndicators: false) {
@@ -106,7 +100,7 @@ struct HistoryView: View {
         .accessibilityAddTraits(isSelected ? [.isSelected] : [])
     }
 
-    // MARK: - List
+    // MARK: - list
 
     @ViewBuilder
     private var list: some View {
@@ -116,8 +110,7 @@ struct HistoryView: View {
             List {
                 ForEach(visible) { record in
                     row(record)
-                        // Half the design's 10pt gap on each row, so the space
-                        // between two rows comes out right.
+                        // half the 10pt gap per row
                         .listRowInsets(EdgeInsets(
                             top: 5,
                             leading: Theme.sideMargin,
@@ -193,7 +186,7 @@ struct HistoryView: View {
         .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
     }
 
-    // MARK: - Empty
+    // MARK: - empty
 
     private var emptyState: some View {
         VStack(spacing: 8) {
@@ -210,8 +203,7 @@ struct HistoryView: View {
         .padding(.horizontal, Theme.sideMargin)
     }
 
-    /// Says which of the three things is empty: the log, the search, or the
-    /// filter. "No results" would leave the user guessing which.
+    // says which of the three is empty: the log, the search, or the filter
     private var emptyMessage: String {
         if history.records.isEmpty {
             return "Nothing scanned yet."
@@ -228,7 +220,7 @@ struct HistoryView: View {
         }
     }
 
-    // MARK: - Dates
+    // MARK: - dates
 
     private static let relativeFormatter: RelativeDateTimeFormatter = {
         let formatter = RelativeDateTimeFormatter()

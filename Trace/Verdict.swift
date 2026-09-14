@@ -1,17 +1,8 @@
-//
-//  Verdict.swift
-//  Trace
-//
-//  The four answers a scan can produce.
-//
+// the four answers a scan can produce
 
 import SwiftUI
 
-/// Which of the five tiers in CLAUDE.md produced a match.
-///
-/// Carried on the verdict so the Why card can name the field and not just the
-/// ingredient: "listed in this product's declared allergens" says something
-/// different from "listed in this product's additives".
+// which of the five tiers matched, so the why card can name the field
 enum MatchSource: String, Codable, Hashable, CaseIterable {
     case allergens
     case traces
@@ -19,7 +10,7 @@ enum MatchSource: String, Codable, Hashable, CaseIterable {
     case ingredientAnalysis
     case additives
 
-    /// Worded to drop into the Why sentence.
+    // worded to drop into the why sentence
     var phrase: String {
         switch self {
         case .allergens: return "declared allergens"
@@ -31,10 +22,7 @@ enum MatchSource: String, Codable, Hashable, CaseIterable {
     }
 }
 
-/// One restriction that matched, and the tier that caught it.
-///
-/// A restriction appears at most once even when it turns up in several tiers,
-/// attributed to the earliest one — the most direct evidence available.
+// one matched restriction, attributed to the earliest tier that caught it
 struct VerdictMatch: Codable, Hashable {
     let name: String
     let source: MatchSource
@@ -42,15 +30,13 @@ struct VerdictMatch: Codable, Hashable {
 
 enum Verdict: Codable, Hashable {
 
-    /// Matched things the user avoids, in tier order. Never empty.
+    // matches in tier order, never empty
     case contains(matches: [VerdictMatch])
 
     case clear
     case unknown
 
-    /// Open Food Facts had nothing for the barcode, or the lookup never
-    /// completed. There is no product to talk about, so the band carries the
-    /// scanned code instead.
+    // nothing came back, so the band carries the barcode instead
     case notFound
 
     var title: String {
@@ -63,10 +49,7 @@ enum Verdict: Codable, Hashable {
         }
     }
 
-    /// The one place a verdict color is allowed.
-    ///
-    /// `notFound` deliberately takes ink rather than a verdict color: nothing
-    /// was checked, so nothing is being claimed about the product.
+    // the one place a verdict color is allowed, notFound takes ink instead
     var color: Color {
         switch self {
         case .contains: return Theme.contains
@@ -85,14 +68,11 @@ enum Verdict: Codable, Hashable {
         }
     }
 
-    /// The Why card's body, one line per match, so a declared allergen and a
-    /// trace warning stay distinguishable.
+    // why card body, one line per match
     var reasonLines: [String] {
         switch self {
         case .contains(let matches):
-            // Names arrive sentence-cased from the catalog, so they are used
-            // as written: `.capitalized` would title-case "sulphur dioxide and
-            // sulphites".
+            // names arrive sentence-cased, .capitalized would title-case them
             return matches.map { "\($0.name) is listed in this product's \($0.source.phrase)." }
         case .clear:
             return ["None of your avoided ingredients appear in this product."]
@@ -104,7 +84,7 @@ enum Verdict: Codable, Hashable {
         }
     }
 
-    /// "milk", "milk and peanuts", "milk, peanuts and soy".
+    // "milk", "milk and peanuts", "milk, peanuts and soy"
     private static func sentenceList(_ items: [String]) -> String {
         guard let last = items.last else { return "" }
 
@@ -115,7 +95,7 @@ enum Verdict: Codable, Hashable {
         }
     }
 
-    /// Short form, for the chips on Today and in History.
+    // short form for the chips on today and history
     var chipLabel: String {
         switch self {
         case .contains: return "Flagged"
@@ -125,13 +105,13 @@ enum Verdict: Codable, Hashable {
         }
     }
 
-    /// Whether this verdict flagged something, for counting.
+    // whether this verdict flagged something, for counting
     var isContains: Bool {
         if case .contains = self { return true }
         return false
     }
 
-    /// Every term to highlight in the ingredient list.
+    // every term to highlight in the ingredient list
     var matchedItems: [String] {
         switch self {
         case .contains(let matches): return matches.map(\.name)

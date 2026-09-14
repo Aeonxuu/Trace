@@ -1,9 +1,4 @@
-//
-//  SearchField.swift
-//  Trace
-//
-//  Laid out from the Figma search field on trace-onboarding-2.
-//
+// search field, from the figma frame trace-onboarding-2
 
 import SwiftUI
 
@@ -19,9 +14,7 @@ struct SearchField: View {
                 .font(.system(size: 16))
                 .foregroundStyle(Theme.muted)
 
-            // The placeholder is drawn rather than passed to TextField: the
-            // built-in one uses the system placeholder color, which is far
-            // fainter than muted and barely legible on surface.
+            // placeholder drawn by hand, the built-in one is too faint on surface
             ZStack(alignment: .leading) {
                 if text.isEmpty {
                     Text(placeholder)

@@ -1,10 +1,4 @@
-//
-//  ScanHistoryModel.swift
-//  Trace
-//
-//  The scan log. The only thing that talks to ScanHistory, so no view has to
-//  know where any of this is kept.
-//
+// the scan log, the only thing that talks to ScanHistory
 
 import Combine
 import Foundation
@@ -12,15 +6,13 @@ import Foundation
 @MainActor
 final class ScanHistoryModel: ObservableObject {
 
-    /// Newest first, which is the order every screen wants to read it in.
+    // newest first
     @Published private(set) var records: [ScanRecord] = []
 
     private let store: ScanHistory
     private var isLoaded = false
 
-    /// The default is built in here rather than as a default argument: a
-    /// default argument is evaluated outside the actor, which this type is
-    /// isolated to.
+    // default built in here, a default argument evaluates outside the actor
     init(store: ScanHistory? = nil) {
         self.store = store ?? UserDefaultsScanHistory()
     }
@@ -48,7 +40,7 @@ final class ScanHistoryModel: ObservableObject {
         Task { await store.save(snapshot) }
     }
 
-    /// The newest scans, newest first, however many of them there are.
+    // the newest scans, however many there are
     func recent(_ count: Int) -> [ScanRecord] {
         Array(records.prefix(count))
     }
@@ -57,8 +49,7 @@ final class ScanHistoryModel: ObservableObject {
         thisWeek.count
     }
 
-    /// Counted over the same seven days as the scan total, so the two numbers
-    /// read against each other rather than over different spans.
+    // same seven days as the scan total
     var itemsFlaggedThisWeek: Int {
         thisWeek.filter(\.verdict.isContains).count
     }

@@ -1,21 +1,10 @@
-//
-//  VerdictEngine.swift
-//  Trace
-//
-//  The matching engine. Pure: same product and same restrictions always give
-//  the same verdict, with nothing read from storage or the network.
-//
+// the matching engine, pure: same inputs always give the same verdict
 
 import Foundation
 
 nonisolated enum VerdictEngine {
 
-    /// Checks a product against what the user avoids.
-    ///
-    /// The five tiers run in the order CLAUDE.md sets out and stop at the
-    /// first match, so the most direct evidence wins: a declared allergen is
-    /// reported as a declared allergen even when the same item also shows up
-    /// further down in the additives.
+    // checks a product against what the user avoids, tier by tier
     static func evaluate(
         product: Product,
         restrictions: [Restriction],
@@ -25,10 +14,7 @@ nonisolated enum VerdictEngine {
         var matches: [VerdictMatch] = []
         var reported: Set<String> = []
 
-        // Tiers still run in CLAUDE.md's order, but none of them returns: a
-        // restriction caught at tier 1 and another at tier 3 both belong on
-        // the verdict. The first tier to catch a restriction is the one it is
-        // attributed to, so `reported` keeps it from being listed twice.
+        // tiers do not return, so reported keeps one restriction from listing twice
         func collect(_ candidates: [Restriction], in tags: [String]?, as source: MatchSource) {
             for restriction in all(of: candidates, in: tags)
             where reported.insert(restriction.tagID).inserted {
@@ -36,17 +22,15 @@ nonisolated enum VerdictEngine {
             }
         }
 
-        // 1. Declared allergens.
+        // 1. declared allergens
         collect(restrictions, in: product.allergensTags, as: .allergens)
 
-        // 2. Traces, but only for restrictions that asked to hear about them:
-        // a severe restriction always does, everyone else only when the
-        // global toggle is on.
+        // 2. traces, for severe restrictions or when the toggle is on
         let traceSensitive = restrictions.filter { countTraces || $0.severity == .severe }
         collect(traceSensitive, in: product.tracesTags, as: .traces)
         collect(traceSensitive, in: tokens(of: product.tracesFromIngredients), as: .traces)
 
-        // 3, 4, 5.
+        // 3, 4, 5. ingredients, analysis, additives
         collect(restrictions, in: product.ingredientsTags, as: .ingredients)
         collect(restrictions, in: product.ingredientsAnalysisTags, as: .ingredientAnalysis)
         collect(restrictions, in: product.additivesTags, as: .additives)
@@ -55,18 +39,13 @@ nonisolated enum VerdictEngine {
             return .contains(matches: matches)
         }
 
-        // Nothing matched, which only means "clear" if there was something to
-        // check. Otherwise the honest answer is that we do not know.
+        // nothing matched only means clear if there was something to check
         return hasSomethingToCheck(product) ? .clear : .unknown
     }
 
-    // MARK: - Matching
+    // MARK: - matching
 
-    /// Every restriction present in `tags`.
-    ///
-    /// Ordered by the user's own list rather than by the product's tags, so
-    /// the verdict reads the same way every time no matter how Open Food Facts
-    /// happens to order its fields.
+    // every restriction present in tags, ordered by the user's own list
     private static func all(
         of restrictions: [Restriction],
         in tags: [String]?
@@ -77,8 +56,7 @@ nonisolated enum VerdictEngine {
         return restrictions.filter { !forms(of: $0).isDisjoint(with: present) }
     }
 
-    /// `traces_from_ingredients` is one free-text field rather than a list, so
-    /// it is split before being matched like any other tag source.
+    // traces_from_ingredients is free text, so it is split before matching
     private static func tokens(of field: String?) -> [String]? {
         guard let field else { return nil }
 
@@ -90,9 +68,7 @@ nonisolated enum VerdictEngine {
         return pieces.isEmpty ? nil : pieces
     }
 
-    /// The tag ID plus its bare form. Tag lists carry "en:milk", while the
-    /// free-text trace field is just as likely to say "milk"; whole values are
-    /// compared either way, so "en:milk" never matches "en:coconut-milk".
+    // tag id plus bare form, compared whole so en:milk misses en:coconut-milk
     private static func forms(of restriction: Restriction) -> Set<String> {
         let tag = normalized(restriction.tagID)
         guard let colon = tag.lastIndex(of: ":") else { return [tag] }
@@ -103,11 +79,9 @@ nonisolated enum VerdictEngine {
         value.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
     }
 
-    // MARK: - Enough to go on
+    // MARK: - enough to go on
 
-    /// CLAUDE.md names exactly three fields here. Nothing else counts: a
-    /// product carrying only additives still has no ingredient list behind it,
-    /// so it cannot be called clear.
+    // exactly the three fields CLAUDE.md names, nothing else counts
     private static func hasSomethingToCheck(_ product: Product) -> Bool {
         isPresent(product.allergensTags)
             || isPresent(product.ingredientsTags)

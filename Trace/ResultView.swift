@@ -1,17 +1,8 @@
-//
-//  ResultView.swift
-//  Trace
-//
-//  The verdict sheet. Laid out from the Figma frames trace-contains-milk,
-//  trace-no-match and trace-not-enough-data.
-//
+// the verdict sheet, from the figma result frames
 
 import SwiftUI
 
-/// One scan, ready to show.
-///
-/// `product` is nil when the lookup came back with nothing, which is why the
-/// barcode is carried separately: it is all the screen has left to show.
+// one scan ready to show, product is nil when the lookup found nothing
 struct ScanResult: Identifiable {
     let id = UUID()
     let verdict: Verdict
@@ -26,8 +17,7 @@ struct ResultView: View {
     let barcode: String
     let onScanNext: () -> Void
 
-    /// Stands in for any figure the screen cannot honestly print. Never a
-    /// zero: a missing value and a measured zero are not the same claim.
+    // stands in for a figure we cannot print, never a zero
     private static let missing = "—"
 
     var body: some View {
@@ -42,7 +32,7 @@ struct ResultView: View {
         }
     }
 
-    // MARK: - Verdict band
+    // MARK: - verdict band
 
     private func verdictBand(height: CGFloat) -> some View {
         VStack(spacing: 16) {
@@ -61,8 +51,7 @@ struct ResultView: View {
                     .multilineTextAlignment(.center)
                     .minimumScaleFactor(0.5)
 
-                // With no product to name, the code is the only thing that
-                // tells the user which scan they are looking at.
+                // with no product to name, the code identifies the scan
                 if case .notFound = verdict {
                     Text(barcode)
                         .font(.system(size: 15, weight: .semibold).monospacedDigit())
@@ -77,7 +66,7 @@ struct ResultView: View {
         .background(verdict.color)
     }
 
-    // MARK: - Body
+    // MARK: - body
 
     private var contentBody: some View {
         VStack(alignment: .leading, spacing: 20) {
@@ -152,8 +141,7 @@ struct ResultView: View {
                 .foregroundStyle(Theme.ink)
 
             VStack(alignment: .leading, spacing: 6) {
-                // Keyed by position: two restrictions could in principle share
-                // a display name, and identical lines must not collapse.
+                // keyed by position, two matches could share a display name
                 ForEach(Array(verdict.reasonLines.enumerated()), id: \.offset) { _, line in
                     Text(line)
                         .font(.system(size: 17))
@@ -190,9 +178,7 @@ struct ResultView: View {
         }
     }
 
-    /// Open Food Facts often declares an allergen that never shows up in the
-    /// visible ingredient text, which leaves the verdict looking unfounded.
-    /// This is where that evidence goes.
+    // declared allergens often never appear in the visible text, so they go here
     @ViewBuilder
     private func declaredAllergens(_ product: Product) -> some View {
         let names = (product.allergensTags ?? [])
@@ -215,7 +201,7 @@ struct ResultView: View {
         }
     }
 
-    /// Marks every whole-word occurrence of every matched item.
+    // marks every whole-word occurrence of every matched item
     private func highlighting(
         _ terms: [String],
         in text: String,
@@ -225,9 +211,7 @@ struct ResultView: View {
             return Text(text).foregroundColor(base)
         }
 
-        // Ranges from all terms, walked in document order. One that starts
-        // inside a range already drawn is skipped: two avoided terms rarely
-        // overlap, and half a highlight would read worse than none.
+        // walked in document order, a range starting inside a drawn one is skipped
         let ranges = terms
             .flatMap { WordMatch.ranges(of: $0, in: text) }
             .sorted { $0.lowerBound < $1.lowerBound }
@@ -300,10 +284,10 @@ struct ResultView: View {
         }
     }
 
-    // MARK: - Nutrition rows
+    // MARK: - nutrition rows
 
     struct NutritionRow: Identifiable {
-        /// Labels are unique down the table, so one doubles as its identity.
+        // labels are unique down the table
         var id: String { label }
         let label: String
         let value: String
@@ -322,7 +306,7 @@ struct ResultView: View {
         ]
     }
 
-    /// True when not one row came out with a figure behind it.
+    // true when no row came out with a figure behind it
     private var hasNoNutritionFigures: Bool {
         nutritionRows.allSatisfy { $0.value == Self.missing }
     }

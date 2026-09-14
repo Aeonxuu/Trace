@@ -1,16 +1,10 @@
-//
-//  TodayView.swift
-//  Trace
-//
-//  Laid out from the Figma frame trace-today.
-//
+// today tab, from the figma frame trace-today
 
 import SwiftUI
 
 struct TodayView: View {
 
-    /// Switches the shell to the Scan tab. Owned by RootView, since the tab
-    /// selection is not this screen's to keep.
+    // switches the shell to the scan tab, owned by RootView
     let onScanTapped: () -> Void
 
     @EnvironmentObject private var history: ScanHistoryModel
@@ -49,7 +43,7 @@ struct TodayView: View {
         .scanResultSheet($reopener.result)
     }
 
-    // MARK: - Greeting
+    // MARK: - greeting
 
     private var greeting: some View {
         VStack(alignment: .leading, spacing: 4) {
@@ -78,7 +72,7 @@ struct TodayView: View {
         }
     }
 
-    // MARK: - Scan card
+    // MARK: - scan card
 
     private var scanCard: some View {
         Button(action: onScanTapped) {
@@ -111,7 +105,7 @@ struct TodayView: View {
         .buttonStyle(.plain)
     }
 
-    // MARK: - Recent scans
+    // MARK: - recent scans
 
     private var recentScansSection: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -177,7 +171,7 @@ struct TodayView: View {
         .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
     }
 
-    // MARK: - Stats
+    // MARK: - stats
 
     private var statsSection: some View {
         VStack(alignment: .leading, spacing: 12) {

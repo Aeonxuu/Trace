@@ -1,20 +1,10 @@
-//
-//  WordMatch.swift
-//  Trace
-//
-//  Whole-word search, for marking a matched item inside ingredient text.
-//
+// whole-word search, for marking a match inside ingredient text
 
 import Foundation
 
 enum WordMatch {
 
-    /// Every range where `term` appears in `text` as a whole word,
-    /// case-insensitively.
-    ///
-    /// A word ends at anything that is not a letter or a digit, so a term
-    /// still matches at the start or end of the text and next to punctuation,
-    /// while "milk" no longer matches inside "Buttermilk".
+    // every whole-word range of term in text, so milk does not match buttermilk
     static func ranges(of term: String, in text: String) -> [Range<String.Index>] {
         guard !term.isEmpty, !text.isEmpty else { return [] }
 

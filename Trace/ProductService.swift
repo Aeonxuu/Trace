@@ -1,9 +1,4 @@
-//
-//  ProductService.swift
-//  Trace
-//
-//  Open Food Facts lookups. Knows nothing about the scanner.
-//
+// open food facts lookups, knows nothing about the scanner
 
 import Foundation
 
@@ -14,7 +9,7 @@ enum ProductResult {
 }
 
 enum ProductServiceError: Error {
-    /// The barcode could not form a request path.
+    // the barcode could not form a request path
     case invalidBarcode(String)
 }
 
@@ -29,10 +24,7 @@ struct ProductService {
         self.session = session
     }
 
-    /// Looks up a barcode, retrying once without a leading zero on a miss.
-    ///
-    /// Throws only for a barcode that cannot be requested at all. Transport
-    /// and decoding failures come back as `.failed`.
+    // looks up a barcode, throws only when it cannot be requested at all
     func fetchProduct(barcode: String) async throws -> ProductResult {
         let result = try await lookup(barcode)
 
@@ -41,8 +33,7 @@ struct ProductService {
             return result
         }
 
-        // iOS reports UPC-A as 13 digits with a leading zero, so the miss may
-        // just be the wrong form of the same code. One retry, no more.
+        // ios reports upc-a with a leading zero, so retry once without it
         return try await lookup(stripped)
     }
 
@@ -56,8 +47,7 @@ struct ProductService {
         request.setValue(Self.userAgent, forHTTPHeaderField: "User-Agent")
 
         do {
-            // The HTTP status is deliberately ignored: a missing product is a
-            // 200 carrying "status": 0.
+            // http status ignored, a missing product is a 200 with "status": 0
             let (data, _) = try await session.data(for: request)
             let response = try JSONDecoder().decode(ProductResponse.self, from: data)
 
